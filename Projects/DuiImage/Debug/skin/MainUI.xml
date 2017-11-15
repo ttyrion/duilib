@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Window size="1400,700" >
 	<VerticalLayout name="root" bkcolor="#FFFFFFFF">
-        
+        <HorizontalLayout name="titlebar" height="40" bkcolor="#FF666666">
+            <Button name="menu" text="菜单" width="80" bkcolor="#FF000000" textcolor="#FFFFFFFF"/>
+            <Control />
+        </HorizontalLayout>
     </VerticalLayout>
 </Window>

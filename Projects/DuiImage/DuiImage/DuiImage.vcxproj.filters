@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="menu">
+      <UniqueIdentifier>{eb4f4520-1c31-4292-87c1-7be09ccf0ef9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -33,6 +36,9 @@
     <ClInclude Include="MainUI.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="menu\MenuUI.h">
+      <Filter>menu</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -43,6 +49,9 @@
     </ClCompile>
     <ClCompile Include="MainUI.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="menu\MenuUI.cpp">
+      <Filter>menu</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window size="80,61" >
+	<VerticalLayout name="root" bkcolor="#FF333333">
+        <Button name="about" text="关于" height="30" textcolor="#FFFFFFFF"/>
+        <Control height="1" bkcolor="#FF000000"/>
+        <Button name="exit" text="退出" height="30" textcolor="#FFFFFFFF"/>
+    </VerticalLayout>
+</Window>
