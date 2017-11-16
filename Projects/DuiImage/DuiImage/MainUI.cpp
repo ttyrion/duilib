@@ -1,5 +1,8 @@
 #include "stdafx.h"
 #include "MainUI.h"
+#include "define/msg_define.h"
+#include <Shlwapi.h>
+#include "define/const_define.h"
 
 
 CMainUI::CMainUI() {
@@ -25,7 +28,11 @@ LRESULT CMainUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_NCHITTEST:
         result = OnNcHitTest(uMsg, wParam, lParam, handled);
         break;
-    }    
+    case WM_FILE_OPENED:
+        result = OnOpenFile(uMsg, wParam, lParam, handled);
+        break;
+    }
+    
 
     if (handled) {
         return result;
@@ -77,8 +84,35 @@ LRESULT CMainUI::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled
     return 0;
 }
 
+LRESULT CMainUI::OnOpenFile(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled) {
+    handled = TRUE;
+
+    if (wParam == 0) { //file opened successfully 
+        std::wstring* file = (std::wstring*)lParam;
+        if (::PathFileExists(file->c_str()) && index_) {
+            CControlUI* index_image = new CControlUI;
+            index_image->SetFixedHeight(index_image_height);
+            index_image->SetFixedWidth(index_->GetWidth());
+            index_image->SetBkImage(file->c_str());
+            index_->Add(index_image);
+
+            //separator
+            CControlUI *separator = new CControlUI;
+            separator->SetFixedHeight(index_separator_height);
+            separator->SetBkColor(index_separator_bkcolor);
+            index_->Add(separator);
+        }
+
+        delete file;
+    }
+
+    return 0;
+}
+
 void CMainUI::SetSubControls() {
     menu_btn_ = static_cast<CButtonUI*>(pntm_.FindControl(L"menu"));
+    image_ = static_cast<CContainerUI*>(pntm_.FindControl(L"image"));
+    index_ = static_cast<CVerticalLayoutUI*>(pntm_.FindControl(L"index"));
 }
 
 LRESULT CMainUI::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled) {

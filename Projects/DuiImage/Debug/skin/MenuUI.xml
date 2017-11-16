@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Window size="80,61" >
+<Window size="80,123" >
 	<VerticalLayout name="root" bkcolor="#FF333333">
-        <Button name="about" text="关于" height="30" textcolor="#FFFFFFFF"/>
+        <Button name="about" text="关于" align="left" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>
         <Control height="1" bkcolor="#FF000000"/>
-        <Button name="exit" text="退出" height="30" textcolor="#FFFFFFFF"/>
+        <Button name="open_file" text="打开文件" align="left" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>
+        <Control height="1" bkcolor="#FF000000"/>
+        <Button name="open_dir" text="打开文件夹" align="left" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>
+        <Control height="1" bkcolor="#FF000000"/>
+        <Button name="exit" text="退出" align="left" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>        
     </VerticalLayout>
 </Window>

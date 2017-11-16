@@ -3,6 +3,7 @@
 #include "Core/UIBase.h"
 #include "menu/MenuUI.h"
 
+
 using namespace DuiLib;
 
 class CMainUI : public CWindowWnd, IDialogBuilderCallback, public INotifyUI
@@ -17,6 +18,7 @@ public:
     //message handle
     LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled);
     LRESULT OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled);
+    LRESULT OnOpenFile(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled);
 
     //IDialogBuilderCallback
     virtual CControlUI* CreateControl(LPCTSTR pstrClass) override;
@@ -28,5 +30,7 @@ private:
     CPaintManagerUI pntm_;
     CMenuUI menu_;
     CButtonUI* menu_btn_ = nullptr;
+    CContainerUI* image_ = nullptr;
+    CVerticalLayoutUI* index_ = nullptr;
 };
 

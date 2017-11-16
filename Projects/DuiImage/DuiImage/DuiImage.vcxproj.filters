@@ -16,6 +16,9 @@
     <Filter Include="menu">
       <UniqueIdentifier>{eb4f4520-1c31-4292-87c1-7be09ccf0ef9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="define">
+      <UniqueIdentifier>{edf54926-1859-48f1-9633-c7a52970cef4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -38,6 +41,12 @@
     </ClInclude>
     <ClInclude Include="menu\MenuUI.h">
       <Filter>menu</Filter>
+    </ClInclude>
+    <ClInclude Include="define\const_define.h">
+      <Filter>define</Filter>
+    </ClInclude>
+    <ClInclude Include="define\msg_define.h">
+      <Filter>define</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

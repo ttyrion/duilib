@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "MenuUI.h"
+#include <commdlg.h>
+#include "../define/msg_define.h"
 
 
 CMenuUI::CMenuUI()
@@ -48,6 +50,32 @@ void CMenuUI::Notify(TNotifyUI& msg) {
         else if (name == L"exit") {
             ::PostQuitMessage(0);
         }
+        else if (name == L"open_file") {
+            OPENFILENAME info;
+            memset(&info, 0, sizeof(info));
+            WCHAR buf[MAX_PATH] = { 0 };
+            info.lStructSize = sizeof(info);
+            info.hwndOwner = ::GetParent(m_hWnd);
+            info.lpstrFile = buf;
+            info.nMaxFile = sizeof(buf) / sizeof(WCHAR);
+            info.lpstrFilter = L"All\0*.*\0";
+            info.lpstrFileTitle = NULL;
+            info.nMaxFileTitle = 0;
+            info.lpstrInitialDir = NULL;
+            info.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+            if (GetOpenFileName(&info)) {
+                std::wstring *file = new std::wstring(info.lpstrFile);
+                WPARAM wParam = 0; //indicates success
+                LPARAM lParam = (LPARAM)file;
+                ::PostMessage(::GetParent(m_hWnd), WM_FILE_OPENED, wParam, lParam);
+            }
+        }
+        else if (name == L"open_dir") {
+
+        }
+
+        ::ShowWindow(m_hWnd, SW_HIDE);
     }
 }
 
