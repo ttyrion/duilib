@@ -288,6 +288,8 @@ CControlUI* CDialogBuilder::_Parse(CMarkupNode* pRoot, CControlUI* pParent, CPai
 #ifdef _DEBUG
 			DUITRACE(_T("Create Control: %s"), pstrClass);
 #endif
+            //常用控件，先判断pstrClass的长度，再判断具体的pstrClass值
+            //switch比if-else效率高很多，特别是在if-else命中很靠后的分支的情况下
             SIZE_T cchLen = _tcslen(pstrClass);
             switch( cchLen ) {
             case 4:
@@ -363,6 +365,8 @@ CControlUI* CDialogBuilder::_Parse(CMarkupNode* pRoot, CControlUI* pParent, CPai
                     }
                 }
             }
+
+            //自定义的控件，由实现了IDialogBuilderCallback接口的对象去创建
             if( pControl == NULL && m_pCallback != NULL ) {
                 pControl = m_pCallback->CreateControl(pstrClass);
             }
@@ -379,7 +383,7 @@ CControlUI* CDialogBuilder::_Parse(CMarkupNode* pRoot, CControlUI* pParent, CPai
 				continue;
 			}
 
-        // Add children
+        // Add children of pControl
         if( node.HasChildren() ) {
             _Parse(&node, pControl, pManager);
         }
@@ -391,6 +395,7 @@ CControlUI* CDialogBuilder::_Parse(CMarkupNode* pRoot, CControlUI* pParent, CPai
             LPCTSTR lpValue = szValue;
             if( node.GetAttributeValue(_T("cover"), szValue, cchLen) && _tcscmp(lpValue, _T("true")) == 0 ) {
                 pParent->SetCover(pControl);
+                pControl->SetCovering(true);
             }
             else {
                 CTreeNodeUI* pContainerNode = static_cast<CTreeNodeUI*>(pParent->GetInterface(DUI_CTR_TREENODE));

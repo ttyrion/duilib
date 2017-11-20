@@ -135,6 +135,14 @@ void CControlUI::SetCover(CControlUI *pControl)
     }
 }
 
+bool CControlUI::GetCovering() const {
+    return covering_;
+}
+
+void CControlUI::SetCovering(bool cover) {
+    covering_ = cover;
+}
+
 CDuiString CControlUI::GetText() const
 {
     return m_sText;
@@ -744,7 +752,7 @@ CControlUI* CControlUI::FindControl(FINDCONTROLPROC Proc, LPVOID pData, UINT uFl
         if( (uFlags & UIFIND_HITTEST) == 0 || IsMouseEnabled() ) pResult = Proc(this, pData);
     }
     if( pResult == NULL && m_pCover != NULL ) {
-        /*if( (uFlags & UIFIND_HITTEST) == 0 || true)*/ pResult = m_pCover->FindControl(Proc, pData, uFlags);
+        pResult = m_pCover->FindControl(Proc, pData, uFlags);
     }
     if( pResult == NULL && (uFlags & UIFIND_ME_FIRST) == 0 ) {
         if( (uFlags & UIFIND_HITTEST) == 0 || IsMouseEnabled() ) pResult = Proc(this, pData);

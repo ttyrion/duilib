@@ -33,6 +33,8 @@ public:
     virtual CControlUI* GetParent() const;
     virtual CControlUI* GetCover() const;
     virtual void SetCover(CControlUI *pControl);
+    virtual bool GetCovering() const;
+    virtual void SetCovering(bool cover);
 
     // 文本相关
     virtual CDuiString GetText() const;
@@ -183,6 +185,7 @@ protected:
     CPaintManagerUI* m_pManager;
     CControlUI* m_pParent;
     CControlUI* m_pCover;
+    bool covering_ = false; //此控件是否配置了cover=true，与m_pCover意义不同
 	CDuiString m_sVirtualWnd;
     CDuiString m_sName;
     bool m_bUpdateNeeded;

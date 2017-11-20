@@ -3420,6 +3420,11 @@ CControlUI* CALLBACK CPaintManagerUI::__FindControlFromCount(CControlUI* /*pThis
 
 CControlUI* CALLBACK CPaintManagerUI::__FindControlFromPoint(CControlUI* pThis, LPVOID pData)
 {
+    if (pThis->GetCovering() == true)
+    {
+        return NULL;
+    }
+
     LPPOINT pPoint = static_cast<LPPOINT>(pData);
     return ::PtInRect(&pThis->GetPos(), *pPoint) ? pThis : NULL;
 }
