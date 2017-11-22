@@ -10,7 +10,7 @@ namespace DuiLib {
 
 typedef CControlUI* (CALLBACK* FINDCONTROLPROC)(CControlUI*, LPVOID);
 
-class DUILIB_API CControlUI
+class DUILIB_API CControlUI : public CEventSets
 {
 public:
     CControlUI();
@@ -150,6 +150,7 @@ public:
 
     virtual void Event(TEventUI& event);
     virtual void DoEvent(TEventUI& event);
+    virtual bool OnEventInternal(void* event);
 
     virtual CDuiString GetAttribute(LPCTSTR pstrName);
     virtual void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);

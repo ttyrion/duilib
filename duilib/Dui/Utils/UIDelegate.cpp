@@ -92,4 +92,64 @@ bool CEventSource::operator() (void* param)
     return true;
 }
 
+CEventSets::CEventSets()
+{
+
+}
+
+CEventSets::~CEventSets()
+{
+    EventMap::iterator it = events_.begin();
+    for (auto& iter : events_) {
+        if (iter.second) {
+            delete iter.second;
+        }
+    }
+
+    events_.clear();
+}
+
+void CEventSets::Subscribe(const EventType name, CDelegateBase& subscriber) {
+    CEventSource * source = GetEventObject(name, true);
+    *source += subscriber;
+}
+
+bool CEventSets::UnSubscribe(const EventType name, CDelegateBase& subscriber) {
+    CEventSource* obj = GetEventObject(name, false);
+    if (obj != NULL) {
+        *obj -= subscriber;
+
+        return true;
+    }
+
+    return false;
+}
+
+CEventSource* CEventSets::GetEventObject(const EventType name, bool gen_if_none) {
+    EventMap::iterator pos = events_.find(name);
+    if (pos == events_.end()) {
+        if (gen_if_none) {
+            AddEvent(name);
+            return events_.find(name)->second;
+        }
+        else {
+            return NULL;
+        }            
+    }
+
+    return pos->second;
+}
+
+void CEventSets::AddEvent(const EventType name) {
+    CEventSource* eventObj = new CEventSource();
+    events_[name] = eventObj;
+}
+
+bool CEventSets::FireEvent(const EventType name, void* event_param) {
+    CEventSource* obj = GetEventObject(name, false);
+    if (obj != NULL)
+        return (*obj)(event_param);
+    return true;
+}
+
 } // namespace DuiLib

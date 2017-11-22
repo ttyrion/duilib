@@ -403,6 +403,7 @@ CControlUI* CDialogBuilder::_Parse(CMarkupNode* pRoot, CControlUI* pParent, CPai
                     pContainerNode->GetTreeNodeHoriznotal()->Add(pControl);
                 else
                 {
+                    //如果pParent实现了DUI_CTR_ICONTAINER接口，表示pParent是一个容器控件，需要把子控件Add进去
                     if( pContainer == NULL ) pContainer = static_cast<IContainerUI*>(pParent->GetInterface(DUI_CTR_ICONTAINER));
                     ASSERT(pContainer);
                     if( pContainer == NULL ) return NULL;

@@ -39,6 +39,8 @@ m_nTooltipWidth(300)
     ::ZeroMemory(&m_rcPaint, sizeof(RECT));
 	::ZeroMemory(&m_rcBorderSize,sizeof(RECT));
 	m_piFloatPercent.left = m_piFloatPercent.top = m_piFloatPercent.right = m_piFloatPercent.bottom = 0.0f;
+
+    OnEvent += MakeDelegate(this, &CControlUI::OnEventInternal);
 }
 
 CControlUI::~CControlUI()
@@ -830,6 +832,7 @@ void CControlUI::DoInit()
 
 void CControlUI::Event(TEventUI& event)
 {
+    //OnEvent会遍历并执行内部委托对象
     if( OnEvent(&event) ) DoEvent(event);
 }
 
@@ -867,6 +870,36 @@ void CControlUI::DoEvent(TEventUI& event)
     if( m_pParent != NULL ) m_pParent->DoEvent(event);
 }
 
+bool CControlUI::OnEventInternal(void* event)
+{
+    TEventUI* p = (TEventUI*)event;
+    CControlUI* pSender = p->pSender;
+    if (p->Type == UIEVENT_MOUSEENTER) {
+        TNotifyUI notify;
+        notify.pSender = this;
+        notify.sType = EventFocusIn;
+        return FireEvent(EventFocusIn, &notify);
+    }
+    else if (p->Type == UIEVENT_MOUSELEAVE) {
+        if (pSender == this) {
+            TNotifyUI notify;
+            notify.pSender = this;
+            notify.sType = EventFocusOut;
+            return FireEvent(EventFocusOut, &notify);
+        }
+        else {
+            return true;
+        }
+    }
+    else if (p->Type == UIEVENT_BUTTONUP) {
+        TNotifyUI notify;
+        notify.pSender = this;
+        notify.sType = EventClick;
+        return FireEvent(EventClick, &notify);
+    }
+
+    return true;
+}
 
 void CControlUI::SetVirtualWnd(LPCTSTR pstrValue)
 {

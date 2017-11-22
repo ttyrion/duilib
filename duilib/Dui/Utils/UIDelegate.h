@@ -2,6 +2,7 @@
 #define __UIDELEGATE_H__
 
 #pragma once
+#include <map>
 
 namespace DuiLib {
 
@@ -91,6 +92,30 @@ public:
 
 protected:
     CDuiPtrArray m_aDelegates;
+};
+
+class DUILIB_API CEventSets 
+{
+public:
+    enum EventType {
+        EventFocusIn,
+        EventFocusOut,
+        EventClick
+    };
+
+public:
+    CEventSets();
+    virtual ~CEventSets();
+
+    typedef std::map<EventType, CEventSource*> EventMap;
+    void Subscribe(const EventType name, CDelegateBase& subscriber);
+    bool UnSubscribe(const EventType name, CDelegateBase& subscriber);
+    CEventSource* GetEventObject(const EventType name, bool gen_if_none);
+    void AddEvent(const EventType name);
+    bool FireEvent(const EventType name, void* event_param);//TEventUI
+
+private:
+    EventMap events_;
 };
 
 } // namespace DuiLib
