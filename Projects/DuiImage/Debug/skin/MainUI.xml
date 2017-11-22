@@ -7,7 +7,9 @@
         </HorizontalLayout>
         <HorizontalLayout name="client">
             <Container name="image" />
+            <Control width="20" />
             <VerticalLayout name="index" width="300"/>
         </HorizontalLayout>
+        <Control name="cover" cover="true" float="true" pos="1,1,1400,700" bkcolor="#50000000"/>
     </VerticalLayout>
 </Window>

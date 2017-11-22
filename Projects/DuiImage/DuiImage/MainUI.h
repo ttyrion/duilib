@@ -25,6 +25,8 @@ public:
     //INotifyUI
     virtual void Notify(TNotifyUI& msg) override;
 
+    bool OnMenuClick(void *p);
+
     void SetSubControls();
 private:
     CPaintManagerUI pntm_;

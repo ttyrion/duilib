@@ -51,21 +51,22 @@ void CMainUI::Notify(TNotifyUI& msg) {
     }
 
     if (msg.sType == DUI_MSGTYPE_CLICK) {
-        std::wstring name = msg.pSender->GetName();
-        if (name == L"menu") {
-            RECT pos = msg.pSender->GetPos();
-            if (::IsWindow(menu_.GetHWND())) {
-                HWND menu_wnd = menu_.GetHWND();
-                if (!::IsWindowVisible(menu_wnd)) {
-                    ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
-                }
-            }
-            else {
-                menu_.Create(m_hWnd, L"DuiImageMenu", WS_CHILD, 0, 0, NULL);
-                HWND menu_wnd = menu_.GetHWND();
-                ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
-            }
-        }
+        //std::wstring name = msg.pSender->GetName();
+        //if (name == L"menu") {
+        //    RECT pos = msg.pSender->GetPos();
+        //    if (::IsWindow(menu_.GetHWND())) {
+        //        HWND menu_wnd = menu_.GetHWND();
+        //        if (!::IsWindowVisible(menu_wnd)) {
+        //            ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        //        }
+        //    }
+
+        //    else {
+        //        menu_.Create(m_hWnd, L"DuiImageMenu", WS_CHILD, 0, 0, NULL);
+        //        HWND menu_wnd = menu_.GetHWND();
+        //        ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        //    }
+        //}
     }
 }
 
@@ -89,7 +90,7 @@ LRESULT CMainUI::OnOpenFile(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handl
 
     if (wParam == 0) { //file opened successfully 
         std::wstring* file = (std::wstring*)lParam;
-        if (::PathFileExists(file->c_str()) && index_) {
+        if (::PathFileExists(file->c_str()) && index_ && image_) {
             CControlUI* index_image = new CControlUI;
             index_image->SetFixedHeight(index_image_height);
             index_image->SetFixedWidth(index_->GetWidth());
@@ -101,6 +102,8 @@ LRESULT CMainUI::OnOpenFile(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handl
             separator->SetFixedHeight(index_separator_height);
             separator->SetBkColor(index_separator_bkcolor);
             index_->Add(separator);
+
+            image_->SetBkImage(file->c_str());
         }
 
         delete file;
@@ -111,6 +114,9 @@ LRESULT CMainUI::OnOpenFile(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handl
 
 void CMainUI::SetSubControls() {
     menu_btn_ = static_cast<CButtonUI*>(pntm_.FindControl(L"menu"));
+    if (menu_btn_) {
+        menu_btn_->Subscribe(CEventSets::EventClick, MakeDelegate(this, &CMainUI::OnMenuClick));
+    }
     image_ = static_cast<CContainerUI*>(pntm_.FindControl(L"image"));
     index_ = static_cast<CVerticalLayoutUI*>(pntm_.FindControl(L"index"));
 }
@@ -157,4 +163,27 @@ LRESULT CMainUI::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &hand
 
 CControlUI* CMainUI::CreateControl(LPCTSTR pstrClass) {
     return nullptr;
+}
+
+bool CMainUI::OnMenuClick(void *p) {
+    TNotifyUI *notify = (TNotifyUI*)p;
+    if (notify) {
+        CControlUI* sender = notify->pSender;
+        if (sender) {
+            RECT pos = sender->GetPos();
+            if (::IsWindow(menu_.GetHWND())) {
+                HWND menu_wnd = menu_.GetHWND();
+                if (!::IsWindowVisible(menu_wnd)) {
+                    ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                }
+            }
+            else {
+                menu_.Create(m_hWnd, L"DuiImageMenu", WS_CHILD, 0, 0, NULL);
+                HWND menu_wnd = menu_.GetHWND();
+                ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
+            }
+        }
+    }
+    
+    return true;
 }
