@@ -248,6 +248,7 @@ HWND CWindowWnd::Create(HWND hwndParent, LPCTSTR pstrName, DWORD dwStyle, DWORD 
 {
     if( GetSuperClassName() != NULL && !RegisterSuperclass() ) return NULL;
     if( GetSuperClassName() == NULL && !RegisterWindowClass() ) return NULL;
+    //The last param is important for duilib to relate window handle to CWindowWnd object
     m_hWnd = ::CreateWindowEx(dwExStyle, GetWindowClassName(), pstrName, dwStyle, x, y, cx, cy, hwndParent, hMenu, CPaintManagerUI::GetInstance(), this);
     ASSERT(m_hWnd!=NULL);
     return m_hWnd;
@@ -383,18 +384,21 @@ bool CWindowWnd::RegisterWindowClass()
     return ret != NULL || ::GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
 }
 
+//Used to create a system-control-like controls or windows,
+//reference the implement of CEditWnd, it supers the WC_EDIT system control window
 bool CWindowWnd::RegisterSuperclass()
 {
-    // Get the class information from an existing
-    // window so we can subclass it later on...
+    // Get the class information from an existing window so we can subclass it later on
     WNDCLASSEX wc = { 0 };
     wc.cbSize = sizeof(WNDCLASSEX);
-    if( !::GetClassInfoEx(NULL, GetSuperClassName(), &wc) ) {
+    if( !::GetClassInfoEx(NULL, GetSuperClassName(), &wc) ) { //retrieve information about classes defined by the system
         if( !::GetClassInfoEx(CPaintManagerUI::GetInstance(), GetSuperClassName(), &wc) ) {
             ASSERT(!"Unable to locate window class");
             return NULL;
         }
     }
+
+    //save the original wndproc function
     m_OldWndProc = wc.lpfnWndProc;
     wc.lpfnWndProc = CWindowWnd::__ControlProc;
     wc.hInstance = CPaintManagerUI::GetInstance();
@@ -411,10 +415,15 @@ LRESULT CALLBACK CWindowWnd::__WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
         LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
         pThis = static_cast<CWindowWnd*>(lpcs->lpCreateParams);
         pThis->m_hWnd = hWnd;
+        //Set the user data(can be any struct pointer) associated with the window
+        //Here it's used to get the window object when handling messages: relating hWnd to the CWindowWnd object
         ::SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LPARAM>(pThis));
     } 
     else {
         pThis = reinterpret_cast<CWindowWnd*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
+        //In a window destroying procedure, WM_DESTROY  message comes at the beginning, and WM_NCDESTROY at the end.
+        //A parent window gets WM_DESTROY message before destroying the childs,
+        //and gets WM_NCDESTROY message after the childs being destroyed.
         if( uMsg == WM_NCDESTROY && pThis != NULL ) {
             LRESULT lRes = ::CallWindowProc(pThis->m_OldWndProc, hWnd, uMsg, wParam, lParam);
             ::SetWindowLongPtr(pThis->m_hWnd, GWLP_USERDATA, 0L);

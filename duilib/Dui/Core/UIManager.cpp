@@ -787,6 +787,7 @@ bool CPaintManagerUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LR
 				delete pMsg;
 			}
 
+            //Òì²½É¾³ý¿Ø¼þ
             for( int i = 0; i < m_aDelayedCleanup.GetSize(); i++ ) 
                 static_cast<CControlUI*>(m_aDelayedCleanup[i])->Delete();
             m_aDelayedCleanup.Empty();
