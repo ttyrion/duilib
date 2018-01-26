@@ -1634,10 +1634,12 @@ bool CPaintManagerUI::AttachDialog(CControlUI* pControl)
     return InitControls(pControl);
 }
 
+//called by AttachDialog of CPaintManagerUI or Add of CContainerUI
 bool CPaintManagerUI::InitControls(CControlUI* pControl, CControlUI* pParent /*= NULL*/)
 {
     ASSERT(pControl);
     if( pControl == NULL ) return false;
+    //All the m_pManager(s) of controls will be set here
     pControl->SetManager(this, pParent != NULL ? pParent : pControl->GetParent(), true);
     pControl->FindControl(__FindControlFromNameHash, this, UIFIND_ALL);
     return true;
