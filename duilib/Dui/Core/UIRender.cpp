@@ -304,6 +304,7 @@ HBITMAP CRenderEngine::CreateARGB32Bitmap(HDC hDC, int cx, int cy, COLORREF** pB
 	lpbiSrc->bmiHeader.biClrUsed = 0;
 	lpbiSrc->bmiHeader.biClrImportant = 0;
 
+    //设备无关bitmap
 	HBITMAP hBitmap = CreateDIBSection (hDC, lpbiSrc, DIB_RGB_COLORS, (void **)pBits, NULL, NULL);
 	delete [] lpbiSrc;
 	return hBitmap;

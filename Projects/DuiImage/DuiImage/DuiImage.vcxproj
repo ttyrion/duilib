@@ -71,16 +71,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>../../../duilib;../../../duilib/Dui;$(IncludePath)</IncludePath>
-    <LibraryPath>../../../duilib/Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(DuilibRoot)/duilib;$(DuilibRoot)/duilib/Dui;$(IncludePath)</IncludePath>
+    <LibraryPath>$(DuilibRoot)/duilib/$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../../../duilib;../../../duilib/Dui;$(IncludePath)</IncludePath>
-    <LibraryPath>../../../duilib/Release;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(DuilibRoot);$(DuilibRoot)/duilib/Dui;$(IncludePath)</IncludePath>
+    <LibraryPath>$(DuilibRoot)/duilib/$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>

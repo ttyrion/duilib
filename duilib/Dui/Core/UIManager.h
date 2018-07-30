@@ -13,6 +13,11 @@ class CControlUI;
 /////////////////////////////////////////////////////////////////////////////////////
 //
 
+enum DrawMode {
+    DrawMode_GDI,
+    DrawMode_Direct3D_11
+};
+
 typedef enum EVENTTYPE_UI
 {
     UIEVENT__FIRST = 1,
@@ -194,7 +199,7 @@ public:
     ~CPaintManagerUI();
 
 public:
-    void Init(HWND hWnd, LPCTSTR pstrName = NULL);
+    void Init(HWND hWnd, LPCTSTR pstrName = NULL, DrawMode mode = DrawMode_GDI);
 	bool IsUpdateNeeded() const;
     void NeedUpdate();
 	void Invalidate();
@@ -414,12 +419,13 @@ private:
 	void PostAsyncNotify();
 
 private:
+    DrawMode mode_;
 	CDuiString m_sName;
-    HWND m_hWndPaint;
-    HDC m_hDcPaint;
-    HDC m_hDcOffscreen;
-    HDC m_hDcBackground;
-    HBITMAP m_hbmpOffscreen;
+    HWND m_hWndPaint = NULL;
+    HDC m_hDcPaint = NULL;
+    HDC m_hDcOffscreen = NULL;
+    HDC m_hDcBackground = NULL;
+    HBITMAP m_hbmpOffscreen = NULL;
 	COLORREF* m_pOffscreenBits;
     HBITMAP m_hbmpBackground;
 	COLORREF* m_pBackgroundBits;

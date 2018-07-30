@@ -205,10 +205,11 @@ CPaintManagerUI::~CPaintManagerUI()
     m_aPreMessages.Remove(m_aPreMessages.Find(this));
 }
 
-void CPaintManagerUI::Init(HWND hWnd, LPCTSTR pstrName)
+void CPaintManagerUI::Init(HWND hWnd, LPCTSTR pstrName, DrawMode mode)
 {
 	ASSERT(::IsWindow(hWnd));
 
+    mode_ = mode;
 	m_mNameHash.Resize();
 	RemoveAllFonts();
 	RemoveAllImages();
@@ -845,7 +846,8 @@ bool CPaintManagerUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LR
 
 			RECT rcPaint = { 0 };
 			if( m_bLayered ) {
-				m_bOffscreenPaint = true;
+                //默认即双缓冲方式
+				//m_bOffscreenPaint = true;
 				rcPaint = m_rcLayeredUpdate;
 				if( ::IsRectEmpty(&m_rcLayeredUpdate) ) {
 					PAINTSTRUCT ps = { 0 };
@@ -979,6 +981,8 @@ bool CPaintManagerUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LR
 								if (*pChildBitmapBit != 0x00000000) *pChildBitmapBit |= 0xff000000;
 							}
 						}
+
+                        //把离屏缓冲绘制到窗口上
 						::BitBlt(m_hDcOffscreen, rcChildWnd.left, rcChildWnd.top, rcChildWnd.right - rcChildWnd.left,
 							rcChildWnd.bottom - rcChildWnd.top, hChildMemDC, 0, 0, SRCCOPY);
 						::SelectObject(hChildMemDC, hOldChildBitmap);
