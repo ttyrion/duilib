@@ -788,6 +788,7 @@ namespace DuiLib
 	bool CContainerUI::DoPaint(HDC hDC, const RECT& rcPaint, CControlUI* pStopControl)
 	{
 		RECT rcTemp = { 0 };
+        //rcPaint、m_rcItem不想交则返回，不进行paint操作
 		if( !::IntersectRect(&rcTemp, &rcPaint, &m_rcItem) ) return true;
 
 		CRenderClip clip;

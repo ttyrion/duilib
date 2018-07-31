@@ -1102,6 +1102,8 @@ bool CControlUI::Paint(HDC hDC, const RECT& rcPaint, CControlUI* pStopControl)
 		if( !OnPaint(this) ) return true;
 	}
 	if (!DoPaint(hDC, rcPaint, pStopControl)) return false;
+
+    //cover控件最后绘制，覆盖在父控件控件之上
     if( m_pCover != NULL ) return m_pCover->Paint(hDC, rcPaint);
     return true;
 }

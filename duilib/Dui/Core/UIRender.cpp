@@ -1154,6 +1154,7 @@ void CRenderEngine::DrawColor(HDC hDC, const RECT& rc, DWORD color)
     }
 }
 
+//渐变色绘制，竖直渐变或者水平渐变
 void CRenderEngine::DrawGradient(HDC hDC, const RECT& rc, DWORD dwFirst, DWORD dwSecond, bool bVertical, int nSteps)
 {
     typedef BOOL (WINAPI *LPALPHABLEND)(HDC, int, int, int, int,HDC, int, int, int, int, BLENDFUNCTION);
@@ -1187,6 +1188,8 @@ void CRenderEngine::DrawGradient(HDC hDC, const RECT& rc, DWORD dwFirst, DWORD d
             { rcPaint.left, rcPaint.top, GetBValue(dwFirst) << 8, GetGValue(dwFirst) << 8, GetRValue(dwFirst) << 8, 0xFF00 },
             { rcPaint.right, rcPaint.bottom, GetBValue(dwSecond) << 8, GetGValue(dwSecond) << 8, GetRValue(dwSecond) << 8, 0xFF00 }
         };
+
+        //顶点数组triv中的顶点索引(rectangle只需要两个顶点即可绘制)
         GRADIENT_RECT grc = { 0, 1 };
         lpGradientFill(hPaintDC, triv, 2, &grc, 1, bVertical ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
     }

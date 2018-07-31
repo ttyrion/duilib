@@ -418,6 +418,8 @@ private:
 	void AdjustImagesHSL();
 	void PostAsyncNotify();
 
+    bool DoGDIPaint();
+    bool DoD3DPaint();
 private:
     DrawMode mode_;
 	CDuiString m_sName;

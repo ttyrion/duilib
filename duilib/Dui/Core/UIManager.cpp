@@ -226,6 +226,10 @@ void CPaintManagerUI::Init(HWND hWnd, LPCTSTR pstrName, DrawMode mode)
 		m_hDcPaint = ::GetDC(hWnd);
 		m_aPreMessages.Add(this);
 	}
+
+    if (mode_ == DrawMode_Direct3D_11) {
+
+    }
 }
 
 HINSTANCE CPaintManagerUI::GetInstance()
@@ -833,251 +837,21 @@ bool CPaintManagerUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LR
         return true;
     case WM_PAINT:
         {
-            if( m_pRoot == NULL ) {
-                PAINTSTRUCT ps = { 0 };
-                ::BeginPaint(m_hWndPaint, &ps);
-				CRenderEngine::DrawColor(m_hDcPaint, ps.rcPaint, 0xFF000000);
-                ::EndPaint(m_hWndPaint, &ps);
-                return true;
-            }
-
-			RECT rcClient = { 0 };
-			::GetClientRect(m_hWndPaint, &rcClient);
-
-			RECT rcPaint = { 0 };
-			if( m_bLayered ) {
-                //默认即双缓冲方式
-				//m_bOffscreenPaint = true;
-				rcPaint = m_rcLayeredUpdate;
-				if( ::IsRectEmpty(&m_rcLayeredUpdate) ) {
-					PAINTSTRUCT ps = { 0 };
-					::BeginPaint(m_hWndPaint, &ps);
-					::EndPaint(m_hWndPaint, &ps);
-					return true;
-				}
-				if( rcPaint.right > rcClient.right ) rcPaint.right = rcClient.right;
-				if( rcPaint.bottom > rcClient.bottom ) rcPaint.bottom = rcClient.bottom;
-				::ZeroMemory(&m_rcLayeredUpdate, sizeof(m_rcLayeredUpdate));
-			}
-			else {
-				if( !::GetUpdateRect(m_hWndPaint, &rcPaint, FALSE) ) return true;
-			}
-			
-            // Set focus to first control?
-            if( m_bFocusNeeded ) {
-                SetNextTabControl();
-            }
-
-			SetPainting(true);
-            if( m_bUpdateNeeded ) {
-                m_bUpdateNeeded = false;
-                if( !::IsRectEmpty(&rcClient) ) {
-                    if( m_pRoot->IsUpdateNeeded() ) {
-						RECT rcRoot = rcClient;
-                        if( m_hDcOffscreen != NULL ) ::DeleteDC(m_hDcOffscreen);
-                        if( m_hDcBackground != NULL ) ::DeleteDC(m_hDcBackground);
-                        if( m_hbmpOffscreen != NULL ) ::DeleteObject(m_hbmpOffscreen);
-                        if( m_hbmpBackground != NULL ) ::DeleteObject(m_hbmpBackground);
-                        m_hDcOffscreen = NULL;
-                        m_hDcBackground = NULL;
-                        m_hbmpOffscreen = NULL;
-                        m_hbmpBackground = NULL;
-						if( m_bLayered ) {
-							rcRoot.left += m_rcLayeredInset.left;
-							rcRoot.top += m_rcLayeredInset.top;
-							rcRoot.right -= m_rcLayeredInset.right;
-							rcRoot.bottom -= m_rcLayeredInset.bottom;
-						}
-						m_pRoot->SetPos(rcRoot, true);
-                    }
-                    else {
-						CControlUI* pControl = NULL;
-						m_aFoundControls.Empty();
-						m_pRoot->FindControl(__FindControlsFromUpdate, NULL, UIFIND_VISIBLE | UIFIND_ME_FIRST | UIFIND_UPDATETEST);
-						for( int it = 0; it < m_aFoundControls.GetSize(); it++ ) {
-							pControl = static_cast<CControlUI*>(m_aFoundControls[it]);
-							if( !pControl->IsFloat() ) pControl->SetPos(pControl->GetPos(), true);
-							else pControl->SetPos(pControl->GetRelativePos(), true);
-						}
-                    }
-                    // We'll want to notify the window when it is first initialized
-                    // with the correct layout. The window form would take the time
-                    // to submit swipes/animations.
-					if( m_bFirstLayout ) {
-						m_bFirstLayout = false;
-						SendNotify(m_pRoot, DUI_MSGTYPE_WINDOWINIT,  0, 0, false);
-						if( m_bLayered && m_bLayeredChanged ) {
-							Invalidate();
-							SetPainting(false);
-							return true;
-						}
-					}
-                }
-            }
-			else if( m_bLayered && m_bLayeredChanged ) {
-				RECT rcRoot = rcClient;
-				if( m_pOffscreenBits ) ::ZeroMemory(m_pOffscreenBits, (rcRoot.right - rcRoot.left) 
-					* (rcRoot.bottom - rcRoot.top) * 4);
-				rcRoot.left += m_rcLayeredInset.left;
-				rcRoot.top += m_rcLayeredInset.top;
-				rcRoot.right -= m_rcLayeredInset.right;
-				rcRoot.bottom -= m_rcLayeredInset.bottom;
-				m_pRoot->SetPos(rcRoot, true);
-			}
-            //
-            // Render screen
-            //
-            // Prepare offscreen bitmap?
-            if( m_bOffscreenPaint && m_hbmpOffscreen == NULL )
+            bool result = false;
+            switch (mode_)
             {
-                m_hDcOffscreen = ::CreateCompatibleDC(m_hDcPaint);
-				if( m_bLayered ) m_hbmpOffscreen = CRenderEngine::CreateARGB32Bitmap(m_hDcPaint, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, &m_pOffscreenBits); 
-                else m_hbmpOffscreen = ::CreateCompatibleBitmap(m_hDcPaint, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top); 
-                ASSERT(m_hDcOffscreen);
-                ASSERT(m_hbmpOffscreen);
+                case DuiLib::DrawMode_GDI:
+                    result = DoGDIPaint();
+                    break;
+                case DuiLib::DrawMode_Direct3D_11:
+                    result = DoD3DPaint();
+                    break;
+                default:
+                    break;
             }
-            // Begin Windows paint
-            PAINTSTRUCT ps = { 0 };
-            ::BeginPaint(m_hWndPaint, &ps);
-            if( m_bOffscreenPaint )
-            {
-                HBITMAP hOldBitmap = (HBITMAP) ::SelectObject(m_hDcOffscreen, m_hbmpOffscreen);
-                int iSaveDC = ::SaveDC(m_hDcOffscreen);
-				if (m_bLayered && m_diLayered.pImageInfo == NULL) {
-					COLORREF* pOffscreenBits = NULL;
-					for( LONG y = rcClient.bottom - rcPaint.bottom; y < rcClient.bottom - rcPaint.top; ++y ) {
-						for( LONG x = rcPaint.left; x < rcPaint.right; ++x ) {
-							pOffscreenBits = m_pOffscreenBits + y*(rcClient.right - rcClient.left) + x;
-							*pOffscreenBits = 0;
-						}
-					}
-				}
-                m_pRoot->Paint(m_hDcOffscreen, rcPaint, NULL);
 
-				if( m_bLayered ) {
-					for( int i = 0; i < m_aNativeWindow.GetSize(); ) {
-						HWND hChildWnd = static_cast<HWND>(m_aNativeWindow[i]);
-						if (!::IsWindow(hChildWnd)) {
-							m_aNativeWindow.Remove(i);
-							m_aNativeWindowControl.Remove(i);
-							continue;
-						}
-						++i;
-						if (!::IsWindowVisible(hChildWnd)) continue;
-						RECT rcChildWnd = GetNativeWindowRect(hChildWnd);
-						RECT rcTemp = { 0 };
-						if( !::IntersectRect(&rcTemp, &rcPaint, &rcChildWnd) ) continue;
-
-						COLORREF* pChildBitmapBits = NULL;
-						HDC hChildMemDC = ::CreateCompatibleDC(m_hDcOffscreen);
-						HBITMAP hChildBitmap = CRenderEngine::CreateARGB32Bitmap(hChildMemDC, rcChildWnd.right-rcChildWnd.left, rcChildWnd.bottom-rcChildWnd.top, &pChildBitmapBits); 
-						::ZeroMemory(pChildBitmapBits, (rcChildWnd.right - rcChildWnd.left)*(rcChildWnd.bottom - rcChildWnd.top)*4);
-						HBITMAP hOldChildBitmap = (HBITMAP) ::SelectObject(hChildMemDC, hChildBitmap);
-						::SendMessage(hChildWnd, WM_PRINT, (WPARAM)hChildMemDC,(LPARAM)(PRF_CHECKVISIBLE|PRF_CHILDREN|PRF_CLIENT|PRF_OWNED));
-						COLORREF* pChildBitmapBit;
-						for( LONG y = 0; y < rcChildWnd.bottom-rcChildWnd.top; y++ ) {
-							for( LONG x = 0; x < rcChildWnd.right-rcChildWnd.left; x++ ) {
-								pChildBitmapBit = pChildBitmapBits+y*(rcChildWnd.right-rcChildWnd.left) + x;
-								if (*pChildBitmapBit != 0x00000000) *pChildBitmapBit |= 0xff000000;
-							}
-						}
-
-                        //把离屏缓冲绘制到窗口上
-						::BitBlt(m_hDcOffscreen, rcChildWnd.left, rcChildWnd.top, rcChildWnd.right - rcChildWnd.left,
-							rcChildWnd.bottom - rcChildWnd.top, hChildMemDC, 0, 0, SRCCOPY);
-						::SelectObject(hChildMemDC, hOldChildBitmap);
-						::DeleteObject(hChildBitmap);
-						::DeleteDC(hChildMemDC);
-					}
-				}
-
-                for( int i = 0; i < m_aPostPaintControls.GetSize(); i++ ) {
-                    CControlUI* pPostPaintControl = static_cast<CControlUI*>(m_aPostPaintControls[i]);
-                    pPostPaintControl->DoPostPaint(m_hDcOffscreen, rcPaint);
-                }
-                ::RestoreDC(m_hDcOffscreen, iSaveDC);
-                if( m_bLayered ) {
-                    RECT rcWnd = { 0 };
-                    ::GetWindowRect(m_hWndPaint, &rcWnd);
-                    DWORD dwWidth = rcClient.right - rcClient.left;
-                    DWORD dwHeight = rcClient.bottom - rcClient.top;
-                    RECT rcLayeredClient = rcClient;
-                    rcLayeredClient.left += m_rcLayeredInset.left;
-                    rcLayeredClient.top += m_rcLayeredInset.top;
-                    rcLayeredClient.right -= m_rcLayeredInset.right;
-                    rcLayeredClient.bottom -= m_rcLayeredInset.bottom;
-
-					COLORREF* pOffscreenBits = m_pOffscreenBits;
-					COLORREF* pBackgroundBits = m_pBackgroundBits;
-					BYTE A = 0;
-					BYTE R = 0;
-					BYTE G = 0;
-					BYTE B = 0;
-					if (m_diLayered.pImageInfo != NULL) {
-						if( m_hbmpBackground == NULL) {
-							m_hDcBackground = ::CreateCompatibleDC(m_hDcPaint);
-							m_hbmpBackground = CRenderEngine::CreateARGB32Bitmap(m_hDcPaint, dwWidth, dwHeight, &m_pBackgroundBits); 
-							ASSERT(m_hDcBackground);
-							ASSERT(m_hbmpBackground);
-							::ZeroMemory(m_pBackgroundBits, dwWidth * dwHeight * 4);
-							::SelectObject(m_hDcBackground, m_hbmpBackground);
-							CRenderClip clip;
-							CRenderClip::GenerateClip(m_hDcBackground, rcLayeredClient, clip);
-							CRenderEngine::DrawImage(m_hDcBackground, this, rcLayeredClient, rcLayeredClient, m_diLayered);
-						}
-						else if( m_bLayeredChanged ) {
-							::ZeroMemory(m_pBackgroundBits, dwWidth * dwHeight * 4);
-							CRenderClip clip;
-							CRenderClip::GenerateClip(m_hDcBackground, rcLayeredClient, clip);
-							CRenderEngine::DrawImage(m_hDcBackground, this, rcLayeredClient, rcLayeredClient, m_diLayered);
-						}
-						if( m_diLayered.pImageInfo->bAlpha ) {
-							for( LONG y = rcClient.bottom - rcPaint.bottom; y < rcClient.bottom - rcPaint.top; ++y ) {
-								for( LONG x = rcPaint.left; x < rcPaint.right; ++x ) {
-									pOffscreenBits = m_pOffscreenBits + y * dwWidth + x;
-									pBackgroundBits = m_pBackgroundBits + y * dwWidth + x;
-									A = (BYTE)((*pBackgroundBits) >> 24);
-									R = (BYTE)((*pOffscreenBits) >> 16) * A / 255;
-									G = (BYTE)((*pOffscreenBits) >> 8) * A / 255;
-									B = (BYTE)(*pOffscreenBits) * A / 255;
-									*pOffscreenBits = RGB(B, G, R) + ((DWORD)A << 24);
-								}
-							}
-						}
-					}
-                    BLENDFUNCTION bf = { AC_SRC_OVER, 0, m_nOpacity, AC_SRC_ALPHA };
-                    POINT ptPos   = { rcWnd.left, rcWnd.top };
-                    SIZE sizeWnd  = { dwWidth, dwHeight };
-                    POINT ptSrc   = { 0, 0 };
-                    g_fUpdateLayeredWindow(m_hWndPaint, m_hDcPaint, &ptPos, &sizeWnd, m_hDcOffscreen, &ptSrc, 0, &bf, ULW_ALPHA);
-                }
-                else 
-                    ::BitBlt(m_hDcPaint, rcPaint.left, rcPaint.top, rcPaint.right - rcPaint.left,
-                        rcPaint.bottom - rcPaint.top, m_hDcOffscreen, rcPaint.left, rcPaint.top, SRCCOPY);
-                ::SelectObject(m_hDcOffscreen, hOldBitmap);
-
-                if( m_bShowUpdateRect && !m_bLayered ) {
-                    HPEN hOldPen = (HPEN)::SelectObject(m_hDcPaint, m_hUpdateRectPen);
-                    ::SelectObject(m_hDcPaint, ::GetStockObject(HOLLOW_BRUSH));
-                    ::Rectangle(m_hDcPaint, rcPaint.left, rcPaint.top, rcPaint.right, rcPaint.bottom);
-                    ::SelectObject(m_hDcPaint, hOldPen);
-                }
-            }
-            else
-            {
-                // A standard paint job
-                int iSaveDC = ::SaveDC(m_hDcPaint);
-                m_pRoot->Paint(m_hDcPaint, rcPaint, NULL);
-                ::RestoreDC(m_hDcPaint, iSaveDC);
-            }
-            // All Done!
-            ::EndPaint(m_hWndPaint, &ps);
-
-			SetPainting(false);
-			m_bLayeredChanged = false;
-			if( m_bUpdateNeeded ) Invalidate();
+            return result;
         }
-        return true;
     case WM_PRINTCLIENT:
         {
             if( m_pRoot == NULL ) break;
@@ -3587,6 +3361,267 @@ bool CPaintManagerUI::RemoveTranslateAccelerator(ITranslateAccelerator *pTransla
 void CPaintManagerUI::UsedVirtualWnd(bool bUsed)
 {
 	m_bUsedVirtualWnd = bUsed;
+}
+
+bool CPaintManagerUI::DoGDIPaint() {
+    if (m_pRoot == NULL) {
+        PAINTSTRUCT ps = { 0 };
+        ::BeginPaint(m_hWndPaint, &ps);
+        CRenderEngine::DrawColor(m_hDcPaint, ps.rcPaint, 0xFF000000);
+        ::EndPaint(m_hWndPaint, &ps);
+        return true;
+    }
+
+    RECT rcClient = { 0 };
+    ::GetClientRect(m_hWndPaint, &rcClient);
+
+    RECT rcPaint = { 0 };
+    if (m_bLayered) {
+        //默认即双缓冲方式
+        //m_bOffscreenPaint = true;
+        rcPaint = m_rcLayeredUpdate;
+        if (::IsRectEmpty(&m_rcLayeredUpdate)) {
+            PAINTSTRUCT ps = { 0 };
+            ::BeginPaint(m_hWndPaint, &ps);
+            ::EndPaint(m_hWndPaint, &ps);
+            return true;
+        }
+        if (rcPaint.right > rcClient.right) rcPaint.right = rcClient.right;
+        if (rcPaint.bottom > rcClient.bottom) rcPaint.bottom = rcClient.bottom;
+        ::ZeroMemory(&m_rcLayeredUpdate, sizeof(m_rcLayeredUpdate));
+    }
+    else {
+        if (!::GetUpdateRect(m_hWndPaint, &rcPaint, FALSE)) return true;
+    }
+
+    // Set focus to first control?
+    if (m_bFocusNeeded) {
+        SetNextTabControl();
+    }
+
+    SetPainting(true);
+    if (m_bUpdateNeeded) {
+        m_bUpdateNeeded = false;
+        if (!::IsRectEmpty(&rcClient)) {
+            if (m_pRoot->IsUpdateNeeded()) {
+                RECT rcRoot = rcClient;
+                if (m_hDcOffscreen != NULL) ::DeleteDC(m_hDcOffscreen);
+                if (m_hDcBackground != NULL) ::DeleteDC(m_hDcBackground);
+                if (m_hbmpOffscreen != NULL) ::DeleteObject(m_hbmpOffscreen);
+                if (m_hbmpBackground != NULL) ::DeleteObject(m_hbmpBackground);
+                m_hDcOffscreen = NULL;
+                m_hDcBackground = NULL;
+                m_hbmpOffscreen = NULL;
+                m_hbmpBackground = NULL;
+                if (m_bLayered) {
+                    rcRoot.left += m_rcLayeredInset.left;
+                    rcRoot.top += m_rcLayeredInset.top;
+                    rcRoot.right -= m_rcLayeredInset.right;
+                    rcRoot.bottom -= m_rcLayeredInset.bottom;
+                }
+                m_pRoot->SetPos(rcRoot, true);
+            }
+            else {
+                CControlUI* pControl = NULL;
+                m_aFoundControls.Empty();
+                m_pRoot->FindControl(__FindControlsFromUpdate, NULL, UIFIND_VISIBLE | UIFIND_ME_FIRST | UIFIND_UPDATETEST);
+                for (int it = 0; it < m_aFoundControls.GetSize(); it++) {
+                    pControl = static_cast<CControlUI*>(m_aFoundControls[it]);
+                    if (!pControl->IsFloat()) pControl->SetPos(pControl->GetPos(), true);
+                    else pControl->SetPos(pControl->GetRelativePos(), true);
+                }
+            }
+            // We'll want to notify the window when it is first initialized
+            // with the correct layout. The window form would take the time
+            // to submit swipes/animations.
+            if (m_bFirstLayout) {
+                m_bFirstLayout = false;
+                SendNotify(m_pRoot, DUI_MSGTYPE_WINDOWINIT, 0, 0, false);
+                if (m_bLayered && m_bLayeredChanged) {
+                    Invalidate();
+                    SetPainting(false);
+                    return true;
+                }
+            }
+        }
+    }
+    else if (m_bLayered && m_bLayeredChanged) {
+        RECT rcRoot = rcClient;
+        if (m_pOffscreenBits) ::ZeroMemory(m_pOffscreenBits, (rcRoot.right - rcRoot.left)
+            * (rcRoot.bottom - rcRoot.top) * 4);
+        rcRoot.left += m_rcLayeredInset.left;
+        rcRoot.top += m_rcLayeredInset.top;
+        rcRoot.right -= m_rcLayeredInset.right;
+        rcRoot.bottom -= m_rcLayeredInset.bottom;
+        m_pRoot->SetPos(rcRoot, true);
+    }
+    //
+    // Render screen
+    //
+    // Prepare offscreen bitmap?
+    if (m_bOffscreenPaint && m_hbmpOffscreen == NULL)
+    {
+        //创建一个与设备兼容的内存DC，DC是GDI绘图的环境，包含了很多属性，画刷画笔，字体，等等
+        m_hDcOffscreen = ::CreateCompatibleDC(m_hDcPaint);
+        if (m_bLayered) m_hbmpOffscreen = CRenderEngine::CreateARGB32Bitmap(m_hDcPaint, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, &m_pOffscreenBits);
+        else {
+            //CreateCompatibleDC创建的内存DC的显示区域只有1*1像素大小，并且是单色的
+            //因此需要给这个DC select a bitmap(指定了宽高和color)
+            m_hbmpOffscreen = ::CreateCompatibleBitmap(m_hDcPaint, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top);
+        }
+        ASSERT(m_hDcOffscreen);
+        ASSERT(m_hbmpOffscreen);
+    }
+    // Begin Windows paint
+    PAINTSTRUCT ps = { 0 };
+    ::BeginPaint(m_hWndPaint, &ps);
+    if (m_bOffscreenPaint)
+    {
+        //使m_hDcOffscreen的显示区域正好是m_hbmpOffscreen的大小
+        HBITMAP hOldBitmap = (HBITMAP) ::SelectObject(m_hDcOffscreen, m_hbmpOffscreen);
+        //保存当前的设备属性，开始用新设备属性绘图
+        int iSaveDC = ::SaveDC(m_hDcOffscreen);
+        if (m_bLayered && m_diLayered.pImageInfo == NULL) {
+            COLORREF* pOffscreenBits = NULL;
+            for (LONG y = rcClient.bottom - rcPaint.bottom; y < rcClient.bottom - rcPaint.top; ++y) {
+                for (LONG x = rcPaint.left; x < rcPaint.right; ++x) {
+                    pOffscreenBits = m_pOffscreenBits + y*(rcClient.right - rcClient.left) + x;
+                    *pOffscreenBits = 0;
+                }
+            }
+        }
+        m_pRoot->Paint(m_hDcOffscreen, rcPaint, NULL);
+
+        if (m_bLayered) {
+            for (int i = 0; i < m_aNativeWindow.GetSize(); ) {
+                HWND hChildWnd = static_cast<HWND>(m_aNativeWindow[i]);
+                if (!::IsWindow(hChildWnd)) {
+                    m_aNativeWindow.Remove(i);
+                    m_aNativeWindowControl.Remove(i);
+                    continue;
+                }
+                ++i;
+                if (!::IsWindowVisible(hChildWnd)) continue;
+                RECT rcChildWnd = GetNativeWindowRect(hChildWnd);
+                RECT rcTemp = { 0 };
+                if (!::IntersectRect(&rcTemp, &rcPaint, &rcChildWnd)) continue;
+
+                COLORREF* pChildBitmapBits = NULL;
+                HDC hChildMemDC = ::CreateCompatibleDC(m_hDcOffscreen);
+                HBITMAP hChildBitmap = CRenderEngine::CreateARGB32Bitmap(hChildMemDC, rcChildWnd.right - rcChildWnd.left, rcChildWnd.bottom - rcChildWnd.top, &pChildBitmapBits);
+                ::ZeroMemory(pChildBitmapBits, (rcChildWnd.right - rcChildWnd.left)*(rcChildWnd.bottom - rcChildWnd.top) * 4);
+                HBITMAP hOldChildBitmap = (HBITMAP) ::SelectObject(hChildMemDC, hChildBitmap);
+                ::SendMessage(hChildWnd, WM_PRINT, (WPARAM)hChildMemDC, (LPARAM)(PRF_CHECKVISIBLE | PRF_CHILDREN | PRF_CLIENT | PRF_OWNED));
+                COLORREF* pChildBitmapBit;
+                for (LONG y = 0; y < rcChildWnd.bottom - rcChildWnd.top; y++) {
+                    for (LONG x = 0; x < rcChildWnd.right - rcChildWnd.left; x++) {
+                        pChildBitmapBit = pChildBitmapBits + y*(rcChildWnd.right - rcChildWnd.left) + x;
+                        if (*pChildBitmapBit != 0x00000000) *pChildBitmapBit |= 0xff000000;
+                    }
+                }
+
+                //把离屏缓冲绘制到窗口上
+                ::BitBlt(m_hDcOffscreen, rcChildWnd.left, rcChildWnd.top, rcChildWnd.right - rcChildWnd.left,
+                    rcChildWnd.bottom - rcChildWnd.top, hChildMemDC, 0, 0, SRCCOPY);
+                ::SelectObject(hChildMemDC, hOldChildBitmap);
+                ::DeleteObject(hChildBitmap);
+                ::DeleteDC(hChildMemDC);
+            }
+        }
+
+        for (int i = 0; i < m_aPostPaintControls.GetSize(); i++) {
+            CControlUI* pPostPaintControl = static_cast<CControlUI*>(m_aPostPaintControls[i]);
+            pPostPaintControl->DoPostPaint(m_hDcOffscreen, rcPaint);
+        }
+        ::RestoreDC(m_hDcOffscreen, iSaveDC);
+        if (m_bLayered) {
+            RECT rcWnd = { 0 };
+            ::GetWindowRect(m_hWndPaint, &rcWnd);
+            DWORD dwWidth = rcClient.right - rcClient.left;
+            DWORD dwHeight = rcClient.bottom - rcClient.top;
+            RECT rcLayeredClient = rcClient;
+            rcLayeredClient.left += m_rcLayeredInset.left;
+            rcLayeredClient.top += m_rcLayeredInset.top;
+            rcLayeredClient.right -= m_rcLayeredInset.right;
+            rcLayeredClient.bottom -= m_rcLayeredInset.bottom;
+
+            COLORREF* pOffscreenBits = m_pOffscreenBits;
+            COLORREF* pBackgroundBits = m_pBackgroundBits;
+            BYTE A = 0;
+            BYTE R = 0;
+            BYTE G = 0;
+            BYTE B = 0;
+            if (m_diLayered.pImageInfo != NULL) {
+                if (m_hbmpBackground == NULL) {
+                    m_hDcBackground = ::CreateCompatibleDC(m_hDcPaint);
+                    m_hbmpBackground = CRenderEngine::CreateARGB32Bitmap(m_hDcPaint, dwWidth, dwHeight, &m_pBackgroundBits);
+                    ASSERT(m_hDcBackground);
+                    ASSERT(m_hbmpBackground);
+                    ::ZeroMemory(m_pBackgroundBits, dwWidth * dwHeight * 4);
+                    ::SelectObject(m_hDcBackground, m_hbmpBackground);
+                    CRenderClip clip;
+                    CRenderClip::GenerateClip(m_hDcBackground, rcLayeredClient, clip);
+                    CRenderEngine::DrawImage(m_hDcBackground, this, rcLayeredClient, rcLayeredClient, m_diLayered);
+                }
+                else if (m_bLayeredChanged) {
+                    ::ZeroMemory(m_pBackgroundBits, dwWidth * dwHeight * 4);
+                    CRenderClip clip;
+                    CRenderClip::GenerateClip(m_hDcBackground, rcLayeredClient, clip);
+                    CRenderEngine::DrawImage(m_hDcBackground, this, rcLayeredClient, rcLayeredClient, m_diLayered);
+                }
+                if (m_diLayered.pImageInfo->bAlpha) {
+                    for (LONG y = rcClient.bottom - rcPaint.bottom; y < rcClient.bottom - rcPaint.top; ++y) {
+                        for (LONG x = rcPaint.left; x < rcPaint.right; ++x) {
+                            pOffscreenBits = m_pOffscreenBits + y * dwWidth + x;
+                            pBackgroundBits = m_pBackgroundBits + y * dwWidth + x;
+                            A = (BYTE)((*pBackgroundBits) >> 24);
+                            R = (BYTE)((*pOffscreenBits) >> 16) * A / 255;
+                            G = (BYTE)((*pOffscreenBits) >> 8) * A / 255;
+                            B = (BYTE)(*pOffscreenBits) * A / 255;
+                            *pOffscreenBits = RGB(B, G, R) + ((DWORD)A << 24);
+                        }
+                    }
+                }
+            }
+            BLENDFUNCTION bf = { AC_SRC_OVER, 0, m_nOpacity, AC_SRC_ALPHA };
+            POINT ptPos = { rcWnd.left, rcWnd.top };
+            SIZE sizeWnd = { dwWidth, dwHeight };
+            POINT ptSrc = { 0, 0 };
+            g_fUpdateLayeredWindow(m_hWndPaint, m_hDcPaint, &ptPos, &sizeWnd, m_hDcOffscreen, &ptSrc, 0, &bf, ULW_ALPHA);
+        }
+        else
+            ::BitBlt(m_hDcPaint, rcPaint.left, rcPaint.top, rcPaint.right - rcPaint.left,
+                rcPaint.bottom - rcPaint.top, m_hDcOffscreen, rcPaint.left, rcPaint.top, SRCCOPY);
+        ::SelectObject(m_hDcOffscreen, hOldBitmap);
+
+        if (m_bShowUpdateRect && !m_bLayered) {
+            HPEN hOldPen = (HPEN)::SelectObject(m_hDcPaint, m_hUpdateRectPen);
+            ::SelectObject(m_hDcPaint, ::GetStockObject(HOLLOW_BRUSH));
+            ::Rectangle(m_hDcPaint, rcPaint.left, rcPaint.top, rcPaint.right, rcPaint.bottom);
+            ::SelectObject(m_hDcPaint, hOldPen);
+        }
+    }
+    else
+    {
+        // A standard paint job
+        int iSaveDC = ::SaveDC(m_hDcPaint);
+        m_pRoot->Paint(m_hDcPaint, rcPaint, NULL);
+        ::RestoreDC(m_hDcPaint, iSaveDC);
+    }
+    // All Done!
+    ::EndPaint(m_hWndPaint, &ps);
+
+    SetPainting(false);
+    m_bLayeredChanged = false;
+    if (m_bUpdateNeeded) Invalidate();
+
+    return true;
+}
+
+bool CPaintManagerUI::DoD3DPaint() {
+
+
+    return true;
 }
 
 } // namespace DuiLib
