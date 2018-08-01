@@ -28,6 +28,9 @@
     <Filter Include="direct3d">
       <UniqueIdentifier>{8f35d7be-03ef-4a5f-9476-556235a67f94}</UniqueIdentifier>
     </Filter>
+    <Filter Include="direct3d\shader">
+      <UniqueIdentifier>{737c2bbf-a8f7-4cde-93f3-d17c489c3801}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -159,7 +162,7 @@
     <ClInclude Include="UIlib.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="D3DGraphicEngine.h">
+    <ClInclude Include="Core\D3DGraphicEngine.h">
       <Filter>direct3d</Filter>
     </ClInclude>
   </ItemGroup>
@@ -281,7 +284,7 @@
     <ClCompile Include="Utils\XUnzip.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="D3DGraphicEngine.cpp">
+    <ClCompile Include="Core\D3DGraphicEngine.cpp">
       <Filter>direct3d</Filter>
     </ClCompile>
   </ItemGroup>
@@ -289,5 +292,13 @@
     <None Include="Utils\flash11.tlh">
       <Filter>utils</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Core\ColorPixel.hlsl">
+      <Filter>direct3d\shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\ColorVertex.hlsl">
+      <Filter>direct3d\shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

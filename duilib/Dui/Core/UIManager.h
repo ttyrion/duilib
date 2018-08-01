@@ -2,13 +2,13 @@
 #define __UIMANAGER_H__
 
 #pragma once
+#include "D3DGraphicEngine.h"
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
 //
 
 class CControlUI;
-
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -18,7 +18,7 @@ enum DrawMode {
     DrawMode_Direct3D_11
 };
 
-typedef enum EVENTTYPE_UI
+enum EVENTTYPE_UI
 {
     UIEVENT__FIRST = 1,
     UIEVENT__KEYBEGIN,
@@ -507,6 +507,8 @@ private:
     static short m_L;
     static CDuiPtrArray m_aPreMessages;
     static CDuiPtrArray m_aPlugins;
+
+    D3DGraphicEngine d3dengine_;
 
 public:
 	CDuiPtrArray m_aTranslateAccelerator;

@@ -74,6 +74,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(VC_IncludePath);$(WindowsSdk_71A_IncludePath);</IncludePath>
     <OutDir>$(DuilibRoot)\duilib\$(Configuration)\</OutDir>
+    <ExecutablePath>$(DuilibRoot)\tools;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -81,6 +82,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(DuilibRoot)\duilib\$(Configuration)\</OutDir>
+    <ExecutablePath>$(DuilibRoot)\tools;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -92,14 +94,18 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DUI_EXPORTS;UILIB_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)../../duilib/$(ProjectName)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d3d11.lib;libpng16.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(DuilibRoot)\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(DuilibRoot)\duilib\$(Configuration)\Dui.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.dll </Command>
+      <Command>copy $(DuilibRoot)\duilib\$(Configuration)\Dui.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.dll 
+copy $(DuilibRoot)\duilib\$(Configuration)\cv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cv.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cp.dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -124,14 +130,21 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DUI_EXPORTS;UILIB_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>d3d11.lib;libpng16.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(DuilibRoot)\lib\$(Configuration)\</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy $(DuilibRoot)\duilib\$(Configuration)\Dui.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.dll 
+copy $(DuilibRoot)\duilib\$(Configuration)\cv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cv.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cp.dll</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -172,6 +185,7 @@
     <ClInclude Include="Control\UIText.h" />
     <ClInclude Include="Control\UITreeView.h" />
     <ClInclude Include="Control\UIWebBrowser.h" />
+    <ClInclude Include="Core\D3DGraphicEngine.h" />
     <ClInclude Include="Core\UIBase.h" />
     <ClInclude Include="Core\UIContainer.h" />
     <ClInclude Include="Core\UIControl.h" />
@@ -180,7 +194,6 @@
     <ClInclude Include="Core\UIManager.h" />
     <ClInclude Include="Core\UIMarkup.h" />
     <ClInclude Include="Core\UIRender.h" />
-    <ClInclude Include="D3DGraphicEngine.h" />
     <ClInclude Include="Layout\UIChildLayout.h" />
     <ClInclude Include="Layout\UIHorizontalLayout.h" />
     <ClInclude Include="Layout\UITabLayout.h" />
@@ -217,6 +230,7 @@
     <ClCompile Include="Control\UIText.cpp" />
     <ClCompile Include="Control\UITreeView.cpp" />
     <ClCompile Include="Control\UIWebBrowser.cpp" />
+    <ClCompile Include="Core\D3DGraphicEngine.cpp" />
     <ClCompile Include="Core\UIBase.cpp" />
     <ClCompile Include="Core\UIContainer.cpp" />
     <ClCompile Include="Core\UIControl.cpp" />
@@ -224,7 +238,6 @@
     <ClCompile Include="Core\UIManager.cpp" />
     <ClCompile Include="Core\UIMarkup.cpp" />
     <ClCompile Include="Core\UIRender.cpp" />
-    <ClCompile Include="D3DGraphicEngine.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -278,6 +291,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Utils\flash11.tlh" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Core\ColorPixel.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)cp.dll</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)cp.dll</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Core\ColorVertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)cv.dll</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)cv.dll</ObjectFileOutput>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

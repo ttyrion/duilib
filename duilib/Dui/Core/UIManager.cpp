@@ -210,6 +210,13 @@ void CPaintManagerUI::Init(HWND hWnd, LPCTSTR pstrName, DrawMode mode)
 	ASSERT(::IsWindow(hWnd));
 
     mode_ = mode;
+    if (mode_ == DrawMode_Direct3D_11) {
+        bool succeed = d3dengine_.InitDirect3D(hWnd);
+        if (!succeed) {
+            mode_ = DrawMode_GDI;
+        }
+    }
+
 	m_mNameHash.Resize();
 	RemoveAllFonts();
 	RemoveAllImages();
@@ -226,10 +233,6 @@ void CPaintManagerUI::Init(HWND hWnd, LPCTSTR pstrName, DrawMode mode)
 		m_hDcPaint = ::GetDC(hWnd);
 		m_aPreMessages.Add(this);
 	}
-
-    if (mode_ == DrawMode_Direct3D_11) {
-
-    }
 }
 
 HINSTANCE CPaintManagerUI::GetInstance()
@@ -891,19 +894,39 @@ bool CPaintManagerUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LR
         break;
     case WM_SIZE:
         {
-            if( m_pFocus != NULL ) {
-                TEventUI event = { 0 };
-                event.Type = UIEVENT_WINDOWSIZE;
-                event.pSender = m_pFocus;
-                event.wParam = wParam;
-                event.lParam = lParam;
-                event.dwTimestamp = ::GetTickCount();
-                event.ptMouse = m_ptLastMousePos;
-                event.wKeyState = MapKeyState();
-                m_pFocus->Event(event);
+            switch (mode_)
+            {
+                case DuiLib::DrawMode_GDI:
+                    {
+                        if (m_pFocus != NULL) {
+                            TEventUI event = { 0 };
+                            event.Type = UIEVENT_WINDOWSIZE;
+                            event.pSender = m_pFocus;
+                            event.wParam = wParam;
+                            event.lParam = lParam;
+                            event.dwTimestamp = ::GetTickCount();
+                            event.ptMouse = m_ptLastMousePos;
+                            event.wKeyState = MapKeyState();
+                            m_pFocus->Event(event);
+                        }
+                        if (m_pRoot != NULL) m_pRoot->NeedUpdate();
+                        if (m_bLayered) Invalidate();
+                        break;
+                    }
+                   
+                case DuiLib::DrawMode_Direct3D_11: 
+                    {
+                        RECT rect = { 0 };
+                        
+                        ::GetWindowRect(m_hWndPaint, &rect);
+                        d3dengine_.ResizeRender(rect);
+                        
+                        break;
+                    }
+                default:
+                    break;
             }
-            if( m_pRoot != NULL ) m_pRoot->NeedUpdate();
-			if( m_bLayered ) Invalidate();
+            
         }
         return true;
     case WM_TIMER:
@@ -3619,8 +3642,15 @@ bool CPaintManagerUI::DoGDIPaint() {
 }
 
 bool CPaintManagerUI::DoD3DPaint() {
+    //PAINTSTRUCT ps = { 0 };
+    //::BeginPaint(m_hWndPaint, &ps);
 
+    RECT rect = { 100, 100, 400,200 };
+    d3dengine_.DrawColor(rect, 0xFFFF0000);
+    d3dengine_.PresentScene();
 
+    ::ValidateRect(m_hWndPaint, NULL);
+    //::EndPaint(m_hWndPaint, &ps);
     return true;
 }
 

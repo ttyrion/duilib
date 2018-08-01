@@ -73,7 +73,7 @@ void CMainUI::Notify(TNotifyUI& msg) {
 LRESULT CMainUI::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled) {
     handled = TRUE;
 
-    pntm_.Init(m_hWnd);
+    pntm_.Init(m_hWnd,NULL,DrawMode_Direct3D_11);
     CDialogBuilder builder;
     CControlUI *root = builder.Create(L"MainUI.xml", 0, this, &pntm_, NULL);
     if (root) {

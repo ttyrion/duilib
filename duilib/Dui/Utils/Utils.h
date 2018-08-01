@@ -2,6 +2,7 @@
 #define __UTILS_H__
 
 #pragma once
+#include <atlcomtime.h>
 
 namespace DuiLib
 {
