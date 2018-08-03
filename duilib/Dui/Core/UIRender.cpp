@@ -450,7 +450,7 @@ TImageInfo* CRenderEngine::LoadImage(STRINGorID bitmap, LPCTSTR type, DWORD mask
     bmi.bmiHeader.biSizeImage = x * y * 4;
 
     bool bAlphaChannel = false;
-    LPBYTE pDest = NULL;
+    LPBYTE pDest = NULL; //A pointer to a variable that receives a pointer to the location of the DIB bit values
     HBITMAP hBitmap = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&pDest, NULL, 0);
 	if( !hBitmap ) {
 		//::MessageBox(0, _T("CreateDIBSection失败"), _T("抓BUG"), MB_OK);
@@ -476,7 +476,7 @@ TImageInfo* CRenderEngine::LoadImage(STRINGorID bitmap, LPCTSTR type, DWORD mask
     for( int i = 0; i < x * y; i++ ) 
     {
         pDest[i*4 + 3] = pImage[i*4 + 3];
-        if( pDest[i*4 + 3] < 255 )
+        if( pDest[i*4 + 3] < 255 ) //alpha透明
         {
             pDest[i*4] = (BYTE)(DWORD(pImage[i*4 + 2])*pImage[i*4 + 3]/255);
             pDest[i*4 + 1] = (BYTE)(DWORD(pImage[i*4 + 1])*pImage[i*4 + 3]/255);
@@ -485,6 +485,7 @@ TImageInfo* CRenderEngine::LoadImage(STRINGorID bitmap, LPCTSTR type, DWORD mask
         }
         else
         {
+            //RGB->BGR
             pDest[i*4] = pImage[i*4 + 2];
             pDest[i*4 + 1] = pImage[i*4 + 1];
             pDest[i*4 + 2] = pImage[i*4]; 
@@ -534,6 +535,7 @@ void CRenderEngine::DrawImage(HDC hDC, HBITMAP hBitmap, const RECT& rc, const RE
 {
 	ASSERT(::GetObjectType(hDC)==OBJ_DC || ::GetObjectType(hDC)==OBJ_MEMDC);
 
+    //draw transparent or semitransparent pixels
 	typedef BOOL (WINAPI *LPALPHABLEND)(HDC, int, int, int, int,HDC, int, int, int, int, BLENDFUNCTION);
 	static LPALPHABLEND lpAlphaBlend = (LPALPHABLEND) ::GetProcAddress(::GetModuleHandle(_T("msimg32.dll")), "AlphaBlend");
 
@@ -549,15 +551,15 @@ void CRenderEngine::DrawImage(HDC hDC, HBITMAP hBitmap, const RECT& rc, const RE
 	if( lpAlphaBlend && (bAlpha || uFade < 255) ) {
 		BLENDFUNCTION bf = { AC_SRC_OVER, 0, uFade, AC_SRC_ALPHA };
 		// middle
-		if( !bHole ) {
-			rcDest.left = rc.left + rcScale9.left;
+		if( !bHole ) {  //the middle area identified by rcDest should be drawed then
+			rcDest.left = rc.left + rcScale9.left; //spacing configed by 'corner or scale'
 			rcDest.top = rc.top + rcScale9.top;
 			rcDest.right = rc.right - rc.left - rcScale9.left - rcScale9.right;
 			rcDest.bottom = rc.bottom - rc.top - rcScale9.top - rcScale9.bottom;
 			rcDest.right += rcDest.left;
 			rcDest.bottom += rcDest.top;
 			if( ::IntersectRect(&rcTemp, &rcPaint, &rcDest) ) {
-				if( !bTiledX && !bTiledY ) {
+				if( !bTiledX && !bTiledY ) {  //stretch the image to fill
 					rcDest.right -= rcDest.left;
 					rcDest.bottom -= rcDest.top;
 					lpAlphaBlend(hDC, rcDest.left, rcDest.top, rcDest.right, rcDest.bottom, hCloneDC, \
@@ -578,8 +580,10 @@ void CRenderEngine::DrawImage(HDC hDC, HBITMAP hBitmap, const RECT& rc, const RE
 							lDrawHeight -= lDestBottom - rcDest.bottom;
 							lDestBottom = rcDest.bottom;
 						}
+
 						for( int i = 0; i < iTimesX; ++i ) {
 							LONG lDestLeft = rcDest.left + lWidth * i;
+                            //the width of the drawing area, is always the width of the source area of the picture
 							LONG lDestRight = rcDest.left + lWidth * (i + 1);
 							LONG lDrawWidth = lWidth;
 							if( lDestRight > rcDest.right ) {
@@ -1006,24 +1010,35 @@ bool CRenderEngine::DrawImage(HDC hDC, CPaintManagerUI* pManager, const RECT& rc
 		while( *pstrImage != _T('\0') ) {
 			sItem.Empty();
 			sValue.Empty();
+            //去掉key头部的不可显字符和空格
 			while( *pstrImage > _T('\0') && *pstrImage <= _T(' ') ) pstrImage = ::CharNext(pstrImage);
+
+            //解析出key名称，如"dest"
 			while( *pstrImage != _T('\0') && *pstrImage != _T('=') && *pstrImage > _T(' ') ) {
 				LPTSTR pstrTemp = ::CharNext(pstrImage);
-				while( pstrImage < pstrTemp) {
+				if( pstrImage != pstrTemp) {
 					sItem += *pstrImage++;
 				}
 			}
+
+            //可能在解析到'='之前遇到不可显字符或者结尾
 			while( *pstrImage > _T('\0') && *pstrImage <= _T(' ') ) pstrImage = ::CharNext(pstrImage);
 			if( *pstrImage++ != _T('=') ) break;
+
+            //去掉value头部的不可显字符和空格
 			while( *pstrImage > _T('\0') && *pstrImage <= _T(' ') ) pstrImage = ::CharNext(pstrImage);
 			if( *pstrImage++ != _T('\'') ) break;
+
+            //解析出value值，如：0,0,0,0
 			while( *pstrImage != _T('\0') && *pstrImage != _T('\'') ) {
 				LPTSTR pstrTemp = ::CharNext(pstrImage);
-				while( pstrImage < pstrTemp) {
+				if( pstrImage != pstrTemp) {
 					sValue += *pstrImage++;
 				}
 			}
+
 			if( *pstrImage++ != _T('\'') ) break;
+
 			if( !sValue.IsEmpty() ) {
 				if( sItem == _T("file") ) {
 					sImageName = sValue;

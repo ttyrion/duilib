@@ -111,6 +111,9 @@ void CControlUI::SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool
 {
     if( m_pCover != NULL ) m_pCover->SetManager(pManager, this, bInit);
     m_pManager = pManager;
+    if (m_pManager) {
+        mode_ = m_pManager->GetDrawMode();
+    }
     m_pParent = pParent;
     if( bInit && m_pParent ) Init();
 }
@@ -204,14 +207,40 @@ LPCTSTR CControlUI::GetBkImage()
 
 void CControlUI::SetBkImage(LPCTSTR pStrImage)
 {
-	if( m_diBk.sDrawString == pStrImage && m_diBk.pImageInfo != NULL ) return;
-	m_diBk.Clear();
-	m_diBk.sDrawString = pStrImage;
-	DrawImage(NULL, m_diBk);
-	if( m_bFloat && m_cxyFixed.cx == 0 && m_cxyFixed.cy == 0 && m_diBk.pImageInfo ) {
-		m_cxyFixed.cx = m_diBk.pImageInfo->nX;
-		m_cxyFixed.cy = m_diBk.pImageInfo->nY;
-	}
+    switch (mode_)
+    {
+    case DuiLib::DrawMode_GDI: {
+            if (m_diBk.sDrawString == pStrImage && m_diBk.pImageInfo != NULL) return;
+            m_diBk.Clear();
+            m_diBk.sDrawString = pStrImage;
+
+            //不进行绘制，只是获取bkimage信息到m_diBk中
+            DrawImage(NULL, m_diBk);
+
+            if (m_bFloat && m_cxyFixed.cx == 0 && m_cxyFixed.cy == 0 && m_diBk.pImageInfo) {
+                //设置m_cxyFixed为image尺寸
+                m_cxyFixed.cx = m_diBk.pImageInfo->nX;
+                m_cxyFixed.cy = m_diBk.pImageInfo->nY;
+            }
+        }
+        break;
+    case DuiLib::DrawMode_Direct3D_11: {
+            if (back_image_data_.sDrawString == pStrImage && !back_image_data_.empty()) return;
+            back_image_data_.clear();
+            back_image_data_.sDrawString = pStrImage;
+            DrawImage(back_image_data_);
+            if (m_bFloat && m_cxyFixed.cx == 0 && m_cxyFixed.cy == 0 && !back_image_data_.empty()) {
+                //设置m_cxyFixed为image尺寸
+                m_cxyFixed.cx = back_image_data_.width;
+                m_cxyFixed.cy = back_image_data_.height;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+
+    //刷新控件区域，上面的m_diBk此时可以被用于绘制
 	Invalidate();
 }
 
@@ -287,6 +316,14 @@ bool CControlUI::DrawImage(HDC hDC, TDrawInfo& drawInfo)
 	return CRenderEngine::DrawImage(hDC, m_pManager, m_rcItem, m_rcPaint, drawInfo);
 }
 
+bool CControlUI::DrawImage(ImageData& image) {
+    if (m_pManager) {
+        return m_pManager->DrawImage(m_rcItem, m_rcPaint, image);
+    }
+
+    return false;
+}
+
 const RECT& CControlUI::GetPos() const
 {
     return m_rcItem;
@@ -311,6 +348,9 @@ RECT CControlUI::GetClientPos() const
 	return m_rcItem;
 }
 
+//m_rcItem;   //控件实际大小及位置 
+//m_cxyFixed; //控件预设大小
+//m_cXY;      //控件预设位置
 void CControlUI::SetPos(RECT rc, bool bNeedInvalidate)
 {
     if( rc.right < rc.left ) rc.right = rc.left;
@@ -344,7 +384,7 @@ void CControlUI::SetPos(RECT rc, bool bNeedInvalidate)
 
     if( !m_bSetPos ) {
         m_bSetPos = true;
-        if( OnSize ) OnSize(this);
+        if( OnSize ) OnSize(this);  //触发控件OnSize
         m_bSetPos = false;
     }
     
@@ -1108,6 +1148,24 @@ bool CControlUI::Paint(HDC hDC, const RECT& rcPaint, CControlUI* pStopControl)
     return true;
 }
 
+bool CControlUI::Paint(const RECT& rcPaint, CControlUI* pStopControl) {
+    if (pStopControl == this) return false;
+    //不在paint区域的控件，跳过绘制
+    if (!::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem)) return true;
+    if (OnPaint) {
+        if (!OnPaint(this)) return true;
+    }
+
+    if (!DoPaint(rcPaint, pStopControl)) {
+        return false;
+    }
+
+    //cover控件最后绘制，覆盖在父控件控件之上
+    if (m_pCover != NULL) return m_pCover->Paint(rcPaint);
+
+    return true;
+}
+
 bool CControlUI::DoPaint(HDC hDC, const RECT& rcPaint, CControlUI* pStopControl)
 {
     // 绘制循序：背景颜色->背景图->状态图->文本->边框
@@ -1126,6 +1184,28 @@ bool CControlUI::DoPaint(HDC hDC, const RECT& rcPaint, CControlUI* pStopControl)
         PaintStatusImage(hDC);
         PaintText(hDC);
         PaintBorder(hDC);
+    }
+    return true;
+}
+
+bool CControlUI::DoPaint(const RECT& rcPaint, CControlUI* pStopControl) {
+    if (m_cxyBorderRound.cx > 0 || m_cxyBorderRound.cy > 0) {
+        //TODO: round clip
+
+        //CRenderClip roundClip;
+        //CRenderClip::GenerateRoundClip(hDC, m_rcPaint, m_rcItem, m_cxyBorderRound.cx, m_cxyBorderRound.cy, roundClip);
+        //PaintBkColor(hDC);
+        //PaintBkImage(hDC);
+        //PaintStatusImage(hDC);
+        //PaintText(hDC);
+        //PaintBorder(hDC);
+    }
+    else {
+        PaintBkColor();
+        PaintBkImage();
+        PaintStatusImage();
+        PaintText();
+        PaintBorder();
     }
     return true;
 }
@@ -1150,9 +1230,37 @@ void CControlUI::PaintBkColor(HDC hDC)
     }
 }
 
+void CControlUI::PaintBkColor()
+{
+    if (m_dwBackColor != 0 && m_pManager) {
+        //TODO:背景色渐变
+
+        //if (m_dwBackColor2 != 0) {
+        //    if (m_dwBackColor3 != 0) {
+        //        RECT rc = m_rcItem;
+        //        rc.bottom = (rc.bottom + rc.top) / 2;
+        //        CRenderEngine::DrawGradient(hDC, rc, GetAdjustColor(m_dwBackColor), GetAdjustColor(m_dwBackColor2), true, 8);
+        //        rc.top = rc.bottom;
+        //        rc.bottom = m_rcItem.bottom;
+        //        CRenderEngine::DrawGradient(hDC, rc, GetAdjustColor(m_dwBackColor2), GetAdjustColor(m_dwBackColor3), true, 8);
+        //    }
+        //    else
+        //        CRenderEngine::DrawGradient(hDC, m_rcItem, GetAdjustColor(m_dwBackColor), GetAdjustColor(m_dwBackColor2), true, 16);
+        //}
+        //else if (m_dwBackColor >= 0xFF000000) CRenderEngine::DrawColor(hDC, m_rcPaint, GetAdjustColor(m_dwBackColor));
+        //else CRenderEngine::DrawColor(hDC, m_rcItem, GetAdjustColor(m_dwBackColor));
+
+        m_pManager->DrawBkColor(m_rcItem, GetAdjustColor(m_dwBackColor));
+    }
+}
+
 void CControlUI::PaintBkImage(HDC hDC)
 {
 	DrawImage(hDC, m_diBk);
+}
+
+void CControlUI::PaintBkImage() {
+    DrawImage(back_image_data_);
 }
 
 void CControlUI::PaintStatusImage(HDC hDC)
@@ -1160,8 +1268,16 @@ void CControlUI::PaintStatusImage(HDC hDC)
     return;
 }
 
+void CControlUI::PaintStatusImage() {
+    return;
+}
+
 void CControlUI::PaintText(HDC hDC)
 {
+    return;
+}
+
+void CControlUI::PaintText() {
     return;
 }
 
@@ -1227,6 +1343,10 @@ void CControlUI::PaintBorder(HDC hDC)
 			}
 		}
 	}
+}
+
+void CControlUI::PaintBorder() {
+    
 }
 
 void CControlUI::DoPostPaint(HDC hDC, const RECT& rcPaint)

@@ -162,7 +162,13 @@
     <ClInclude Include="UIlib.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Core\D3DGraphicEngine.h">
+    <ClInclude Include="Core\Direct3DRender.h">
+      <Filter>direct3d</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Direct3DImage.h">
+      <Filter>direct3d</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\D3DTypes.h">
       <Filter>direct3d</Filter>
     </ClInclude>
   </ItemGroup>
@@ -284,7 +290,10 @@
     <ClCompile Include="Utils\XUnzip.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="Core\D3DGraphicEngine.cpp">
+    <ClCompile Include="Core\Direct3DRender.cpp">
+      <Filter>direct3d</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Direct3DImage.cpp">
       <Filter>direct3d</Filter>
     </ClCompile>
   </ItemGroup>
@@ -298,6 +307,12 @@
       <Filter>direct3d\shader</Filter>
     </FxCompile>
     <FxCompile Include="Core\ColorVertex.hlsl">
+      <Filter>direct3d\shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\TexturePixel.hlsl">
+      <Filter>direct3d\shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\TextureVertex.hlsl">
       <Filter>direct3d\shader</Filter>
     </FxCompile>
   </ItemGroup>

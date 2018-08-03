@@ -2,7 +2,7 @@
 #define __UIMANAGER_H__
 
 #pragma once
-#include "D3DGraphicEngine.h"
+#include "Direct3DRender.h"
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
@@ -117,13 +117,13 @@ typedef struct DUILIB_API tagTDrawInfo
 	tagTDrawInfo();
 	tagTDrawInfo(LPCTSTR lpsz);
 	void Clear();
-	CDuiString sDrawString;
-    CDuiString sImageName;
+	CDuiString sDrawString;  //bkimage
+    CDuiString sImageName;   //bkimage file
 	bool bLoaded;
 	const TImageInfo* pImageInfo;
-	RECT rcDestOffset;
-	RECT rcBmpPart;
-	RECT rcScale9;
+	RECT rcDestOffset; //image dest
+	RECT rcBmpPart;    //image source
+	RECT rcScale9;     //¾Å¹¬¸ñcorner
 	BYTE uFade;
 	bool bHole;
 	bool bTiledX;
@@ -402,6 +402,13 @@ public:
     bool PreMessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lRes);
 	void UsedVirtualWnd(bool bUsed);
 
+    DrawMode GetDrawMode();
+    void DrawBkColor(const RECT&rect, DWORD color);
+    bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image);
+    void DrawStatusImage();
+    void DrawText();
+    void DrawBorder();
+
 private:
 	CDuiPtrArray* GetFoundControls();
     static CControlUI* CALLBACK __FindControlFromNameHash(CControlUI* pThis, LPVOID pData);
@@ -508,7 +515,7 @@ private:
     static CDuiPtrArray m_aPreMessages;
     static CDuiPtrArray m_aPlugins;
 
-    D3DGraphicEngine d3dengine_;
+    Direct3DRender d3dengine_;
 
 public:
 	CDuiPtrArray m_aTranslateAccelerator;

@@ -2,6 +2,7 @@
 #define __UICONTROL_H__
 
 #pragma once
+#include "D3DTypes.h"
 
 namespace DuiLib {
 
@@ -56,6 +57,7 @@ public:
     SIZE GetBorderRound() const;
     void SetBorderRound(SIZE cxyRound);
     bool DrawImage(HDC hDC, TDrawInfo& drawInfo);
+    bool DrawImage(ImageData& image);
 
 	//边框相关
 	DWORD GetBorderColor() const;
@@ -167,6 +169,16 @@ public:
     virtual void PaintText(HDC hDC);
     virtual void PaintBorder(HDC hDC);
 
+    //paint with Direct3D
+    virtual bool Paint(const RECT& rcPaint, CControlUI* pStopControl = NULL);
+    virtual bool DoPaint(const RECT& rcPaint, CControlUI* pStopControl);
+    virtual void PaintBkColor();
+    virtual void PaintBkImage();
+    virtual void PaintStatusImage();
+    virtual void PaintText();
+    virtual void PaintBorder();
+
+
     virtual void DoPostPaint(HDC hDC, const RECT& rcPaint);
 
 	//虚拟窗口参数
@@ -184,6 +196,7 @@ public:
 
 protected:
     CPaintManagerUI* m_pManager;
+    DrawMode mode_;
     CControlUI* m_pParent;
     CControlUI* m_pCover;
     bool covering_ = false; //此控件是否配置了cover=true，与m_pCover意义不同
@@ -219,6 +232,11 @@ protected:
     DWORD m_dwBackColor3;
     TDrawInfo m_diBk;
 	TDrawInfo m_diFore;
+
+    //for d3d rendering
+    ImageData back_image_data_;
+    ImageData fore_image_data_;
+
     DWORD m_dwBorderColor;
 	DWORD m_dwFocusBorderColor;
     bool m_bColorHSL;

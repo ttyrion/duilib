@@ -94,7 +94,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DUI_EXPORTS;UILIB_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DuilibRoot);$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -130,7 +130,7 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DUI_EXPORTS;UILIB_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DuilibRoot);$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -185,7 +185,9 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
     <ClInclude Include="Control\UIText.h" />
     <ClInclude Include="Control\UITreeView.h" />
     <ClInclude Include="Control\UIWebBrowser.h" />
-    <ClInclude Include="Core\D3DGraphicEngine.h" />
+    <ClInclude Include="Core\D3DTypes.h" />
+    <ClInclude Include="Core\Direct3DImage.h" />
+    <ClInclude Include="Core\Direct3DRender.h" />
     <ClInclude Include="Core\UIBase.h" />
     <ClInclude Include="Core\UIContainer.h" />
     <ClInclude Include="Core\UIControl.h" />
@@ -230,7 +232,8 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
     <ClCompile Include="Control\UIText.cpp" />
     <ClCompile Include="Control\UITreeView.cpp" />
     <ClCompile Include="Control\UIWebBrowser.cpp" />
-    <ClCompile Include="Core\D3DGraphicEngine.cpp" />
+    <ClCompile Include="Core\Direct3DImage.cpp" />
+    <ClCompile Include="Core\Direct3DRender.cpp" />
     <ClCompile Include="Core\UIBase.cpp" />
     <ClCompile Include="Core\UIContainer.cpp" />
     <ClCompile Include="Core\UIControl.cpp" />
@@ -308,6 +311,16 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)cv.dll</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Core\TexturePixel.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)tp.dll</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Core\TextureVertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)tv.dll</ObjectFileOutput>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -231,6 +231,9 @@ void CPaintManagerUI::Init(HWND hWnd, LPCTSTR pstrName, DrawMode mode)
 	if( m_hWndPaint != hWnd ) {
 		m_hWndPaint = hWnd;
 		m_hDcPaint = ::GetDC(hWnd);
+
+        //所有CPaintManagerUI实例都加到了m_aPreMessages中
+        //因此, CPaintManagerUI::TranslateMessage才能让调用了AddPreMessageFilter的窗口能过滤所有窗口的消息
 		m_aPreMessages.Add(this);
 	}
 }
@@ -3414,6 +3417,7 @@ bool CPaintManagerUI::DoGDIPaint() {
         ::ZeroMemory(&m_rcLayeredUpdate, sizeof(m_rcLayeredUpdate));
     }
     else {
+        //需要放在BeginPaint之前，才能获取到正确的update region
         if (!::GetUpdateRect(m_hWndPaint, &rcPaint, FALSE)) return true;
     }
 
@@ -3612,9 +3616,12 @@ bool CPaintManagerUI::DoGDIPaint() {
             POINT ptSrc = { 0, 0 };
             g_fUpdateLayeredWindow(m_hWndPaint, m_hDcPaint, &ptPos, &sizeWnd, m_hDcOffscreen, &ptSrc, 0, &bf, ULW_ALPHA);
         }
-        else
+        else {
+            //离屏绘制完成，显示到屏幕窗口上
             ::BitBlt(m_hDcPaint, rcPaint.left, rcPaint.top, rcPaint.right - rcPaint.left,
                 rcPaint.bottom - rcPaint.top, m_hDcOffscreen, rcPaint.left, rcPaint.top, SRCCOPY);
+        }
+            
         ::SelectObject(m_hDcOffscreen, hOldBitmap);
 
         if (m_bShowUpdateRect && !m_bLayered) {
@@ -3645,13 +3652,44 @@ bool CPaintManagerUI::DoD3DPaint() {
     //PAINTSTRUCT ps = { 0 };
     //::BeginPaint(m_hWndPaint, &ps);
 
-    RECT rect = { 100, 100, 400,200 };
-    d3dengine_.DrawColor(rect, 0xFFFF0000);
-    d3dengine_.PresentScene();
+    if (m_pRoot == NULL) {
+        RECT rect = { 0 };
+        ::GetWindowRect(m_hWndPaint, &rect);
+        d3dengine_.DrawColor(rect, 0xFF000000);
+        d3dengine_.PresentScene();
 
-    ::ValidateRect(m_hWndPaint, NULL);
+        ::ValidateRect(m_hWndPaint, NULL);
+
+        return true;
+    }
+
+    
     //::EndPaint(m_hWndPaint, &ps);
     return true;
+}
+
+DrawMode CPaintManagerUI::GetDrawMode() {
+    return mode_;
+}
+
+void CPaintManagerUI::DrawBkColor(const RECT&rect, DWORD color) {
+    d3dengine_.DrawColor(rect, color);
+}
+
+bool CPaintManagerUI::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image) {
+    return d3dengine_.DrawImage(rcItem,rcPaint,image);
+}
+
+void CPaintManagerUI::DrawStatusImage() {
+    
+}
+
+void CPaintManagerUI::DrawText() {
+    
+}
+
+void CPaintManagerUI::DrawBorder() {
+    
 }
 
 } // namespace DuiLib
