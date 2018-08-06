@@ -74,6 +74,7 @@ public:
 	void SetPos(RECT rc, bool bNeedInvalidate = true);
 	void Move(SIZE szOffset, bool bNeedInvalidate = true);
     bool DoPaint(HDC hDC, const RECT& rcPaint, CControlUI* pStopControl);
+    bool DoPaint(const RECT& rcPaint, CControlUI* pStopControl) override;
 
     void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 

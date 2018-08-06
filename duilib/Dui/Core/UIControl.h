@@ -195,8 +195,10 @@ public:
 	CEventSource OnPostPaint;
 
 protected:
+        DrawMode mode_;
+
+protected:
     CPaintManagerUI* m_pManager;
-    DrawMode mode_;
     CControlUI* m_pParent;
     CControlUI* m_pCover;
     bool covering_ = false; //此控件是否配置了cover=true，与m_pCover意义不同

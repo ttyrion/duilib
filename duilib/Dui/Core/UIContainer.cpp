@@ -858,6 +858,81 @@ namespace DuiLib
         return true;
 	}
 
+    bool CContainerUI::DoPaint(const RECT& rcPaint, CControlUI* pStopControl) {
+        RECT rcTemp = { 0 };
+        if (!::IntersectRect(&rcTemp, &rcPaint, &m_rcItem)) return true;
+        
+        //TODO: clip
+        //CRenderClip clip;
+        //CRenderClip::GenerateClip(hDC, rcTemp, clip);
+
+        CControlUI::DoPaint(rcPaint, pStopControl);
+
+        if (m_items.GetSize() > 0) {
+            RECT rc = m_rcItem;
+            rc.left += m_rcInset.left;
+            rc.top += m_rcInset.top;
+            rc.right -= m_rcInset.right;
+            rc.bottom -= m_rcInset.bottom;
+            if (m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible()) rc.right -= m_pVerticalScrollBar->GetFixedWidth();
+            if (m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible()) rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
+
+            if (!::IntersectRect(&rcTemp, &rcPaint, &rc)) {
+                for (int it = 0; it < m_items.GetSize(); it++) {
+                    CControlUI* pControl = static_cast<CControlUI*>(m_items[it]);
+                    if (pControl == pStopControl) return false;
+                    if (!pControl->IsVisible()) continue;
+                    if (!::IntersectRect(&rcTemp, &rcPaint, &pControl->GetPos())) continue;
+                    if (pControl->IsFloat()) {
+                        if (!::IntersectRect(&rcTemp, &m_rcItem, &pControl->GetPos())) continue;
+                        if (!pControl->Paint(rcPaint, pStopControl)) return false;
+                    }
+                }
+            }
+            else {
+                //TODO: clip
+                //CRenderClip childClip;
+                //CRenderClip::GenerateClip(hDC, rcTemp, childClip);
+
+                for (int it = 0; it < m_items.GetSize(); it++) {
+                    CControlUI* pControl = static_cast<CControlUI*>(m_items[it]);
+                    if (pControl == pStopControl) return false;
+                    if (!pControl->IsVisible()) continue;
+                    if (!::IntersectRect(&rcTemp, &rcPaint, &pControl->GetPos())) continue;
+                    if (pControl->IsFloat()) {
+                        if (!::IntersectRect(&rcTemp, &m_rcItem, &pControl->GetPos())) continue;
+                        //CRenderClip::UseOldClipBegin(hDC, childClip);
+                        //if (!pControl->Paint(hDC, rcPaint, pStopControl)) return false;
+                        //CRenderClip::UseOldClipEnd(hDC, childClip);
+                    }
+                    else {
+                        if (!::IntersectRect(&rcTemp, &rc, &pControl->GetPos())) continue;
+                        if (!pControl->Paint(rcPaint, pStopControl)) return false;
+                    }
+                }
+            }
+        }
+
+        if (m_pVerticalScrollBar != NULL) {
+            if (m_pVerticalScrollBar == pStopControl) return false;
+            if (m_pVerticalScrollBar->IsVisible()) {
+                if (::IntersectRect(&rcTemp, &rcPaint, &m_pVerticalScrollBar->GetPos())) {
+                    if (!m_pVerticalScrollBar->Paint(rcPaint, pStopControl)) return false;
+                }
+            }
+        }
+
+        if (m_pHorizontalScrollBar != NULL) {
+            if (m_pHorizontalScrollBar == pStopControl) return false;
+            if (m_pHorizontalScrollBar->IsVisible()) {
+                if (::IntersectRect(&rcTemp, &rcPaint, &m_pHorizontalScrollBar->GetPos())) {
+                    if (!m_pHorizontalScrollBar->Paint(rcPaint, pStopControl)) return false;
+                }
+            }
+        }
+        return true;
+    }
+
 	void CContainerUI::SetFloatPos(int iIndex)
 	{
 		// 因为CControlUI::SetPos对float的操作影响，这里不能对float组件添加滚动条的影响
