@@ -3655,15 +3655,105 @@ bool CPaintManagerUI::DoD3DPaint() {
     if (m_pRoot == NULL) {
         RECT rect = { 0 };
         ::GetWindowRect(m_hWndPaint, &rect);
-        d3dengine_.DrawColor(rect, 0xFF000000);
-        d3dengine_.PresentScene();
-
-        ::ValidateRect(m_hWndPaint, NULL);
-
-        return true;
+        d3dengine_.FillColor(rect, 0xFF000000);
     }
+    else {
+        RECT rcClient = { 0 };
+        ::GetClientRect(m_hWndPaint, &rcClient);
+        RECT rcPaint = { 0 };
+        if (m_bLayered) {
+            rcPaint = m_rcLayeredUpdate;
+            if (::IsRectEmpty(&m_rcLayeredUpdate)) {
+                ::ValidateRect(m_hWndPaint, NULL);
+                return true;
+            }
 
+            if (rcPaint.right > rcClient.right) rcPaint.right = rcClient.right;
+            if (rcPaint.bottom > rcClient.bottom) rcPaint.bottom = rcClient.bottom;
+            ::ZeroMemory(&m_rcLayeredUpdate, sizeof(m_rcLayeredUpdate));
+        }
+        else {
+            if (!::GetUpdateRect(m_hWndPaint, &rcPaint, FALSE)) {
+                return true;
+            }
+        }
+
+        // Set focus to first control?
+        if (m_bFocusNeeded) {
+            SetNextTabControl();
+        }
+
+        SetPainting(true);
+        if (m_bUpdateNeeded) {
+            m_bUpdateNeeded = false;
+            if (!::IsRectEmpty(&rcClient)) {
+                if (m_pRoot->IsUpdateNeeded()) {
+                    RECT rcRoot = rcClient;
+                    if (m_bLayered) {
+                        rcRoot.left += m_rcLayeredInset.left;
+                        rcRoot.top += m_rcLayeredInset.top;
+                        rcRoot.right -= m_rcLayeredInset.right;
+                        rcRoot.bottom -= m_rcLayeredInset.bottom;
+                    }
+                    m_pRoot->SetPos(rcRoot, true);
+                }
+                else {
+                    CControlUI* pControl = NULL;
+                    m_aFoundControls.Empty();
+                    m_pRoot->FindControl(__FindControlsFromUpdate, NULL, UIFIND_VISIBLE | UIFIND_ME_FIRST | UIFIND_UPDATETEST);
+                    for (int it = 0; it < m_aFoundControls.GetSize(); it++) {
+                        pControl = static_cast<CControlUI*>(m_aFoundControls[it]);
+                        if (!pControl->IsFloat()) pControl->SetPos(pControl->GetPos(), true);
+                        else pControl->SetPos(pControl->GetRelativePos(), true);
+                    }
+                }
+
+                if (m_bFirstLayout) {
+                    m_bFirstLayout = false;
+                    SendNotify(m_pRoot, DUI_MSGTYPE_WINDOWINIT, 0, 0, false);
+                    if (m_bLayered && m_bLayeredChanged) {
+                        Invalidate();
+                        SetPainting(false);
+                        return true;
+                    }
+                }
+            }
+        }
+        else if (m_bLayered && m_bLayeredChanged) {
+            RECT rcRoot = rcClient;
+            if (m_pOffscreenBits) ::ZeroMemory(m_pOffscreenBits, (rcRoot.right - rcRoot.left)
+                * (rcRoot.bottom - rcRoot.top) * 4);
+            rcRoot.left += m_rcLayeredInset.left;
+            rcRoot.top += m_rcLayeredInset.top;
+            rcRoot.right -= m_rcLayeredInset.right;
+            rcRoot.bottom -= m_rcLayeredInset.bottom;
+            m_pRoot->SetPos(rcRoot, true);
+        }
+
+        // Render to screen
+        if (m_bLayered && m_diLayered.pImageInfo == NULL) {
+            COLORREF* pOffscreenBits = NULL;
+            DrawBkColor(rcPaint, 0x00000000);
+        }
+        m_pRoot->Paint(rcPaint, NULL);
+
+        if (m_bLayered) {
+            //TODO: 
+        }
+
+        for (int i = 0; i < m_aPostPaintControls.GetSize(); i++) {
+            CControlUI* pPostPaintControl = static_cast<CControlUI*>(m_aPostPaintControls[i]);
+            pPostPaintControl->DoPostPaint(m_hDcOffscreen, rcPaint);
+        }
+
+        if (m_bLayered) {
+            //TODO:
+        }
+    }
     
+    d3dengine_.PresentScene();
+    ::ValidateRect(m_hWndPaint, NULL);
+
     //::EndPaint(m_hWndPaint, &ps);
     return true;
 }
@@ -3673,7 +3763,7 @@ DrawMode CPaintManagerUI::GetDrawMode() {
 }
 
 void CPaintManagerUI::DrawBkColor(const RECT&rect, DWORD color) {
-    d3dengine_.DrawColor(rect, color);
+    d3dengine_.FillColor(rect, color);
 }
 
 bool CPaintManagerUI::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image) {
@@ -3688,8 +3778,8 @@ void CPaintManagerUI::DrawText() {
     
 }
 
-void CPaintManagerUI::DrawBorder() {
-    
+void CPaintManagerUI::DrawBorder(const RECT& rcItem, const UINT border_size, const DWORD color) {
+    d3dengine_.DrawBorder(rcItem, border_size, color);
 }
 
 } // namespace DuiLib

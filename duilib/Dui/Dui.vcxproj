@@ -104,6 +104,7 @@
     </Link>
     <PostBuildEvent>
       <Command>copy $(DuilibRoot)\duilib\$(Configuration)\Dui.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.dll 
+copy $(DuilibRoot)\duilib\$(Configuration)\Dui.pdb $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.pdb
 copy $(DuilibRoot)\duilib\$(Configuration)\cv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cv.dll
 copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cp.dll</Command>
     </PostBuildEvent>

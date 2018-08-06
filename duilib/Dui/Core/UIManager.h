@@ -407,7 +407,7 @@ public:
     bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image);
     void DrawStatusImage();
     void DrawText();
-    void DrawBorder();
+    void DrawBorder(const RECT& rcItem, const UINT border_size, const DWORD color);
 
 private:
 	CDuiPtrArray* GetFoundControls();

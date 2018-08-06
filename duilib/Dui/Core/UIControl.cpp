@@ -1250,7 +1250,7 @@ void CControlUI::PaintBkColor()
         //else if (m_dwBackColor >= 0xFF000000) CRenderEngine::DrawColor(hDC, m_rcPaint, GetAdjustColor(m_dwBackColor));
         //else CRenderEngine::DrawColor(hDC, m_rcItem, GetAdjustColor(m_dwBackColor));
 
-        m_pManager->DrawBkColor(m_rcItem, GetAdjustColor(m_dwBackColor));
+        m_pManager->DrawBkColor(m_rcItem, m_dwBackColor);
     }
 }
 
@@ -1346,7 +1346,38 @@ void CControlUI::PaintBorder(HDC hDC)
 }
 
 void CControlUI::PaintBorder() {
-    
+    if (!m_pManager) {
+        return;
+    }
+
+    if (m_rcBorderSize.left > 0 && (m_dwBorderColor != 0 || m_dwFocusBorderColor != 0)) {
+        if (m_cxyBorderRound.cx > 0 || m_cxyBorderRound.cy > 0)//画圆角边框
+        {
+            //TODO: round border
+
+            //if (IsFocused() && m_dwFocusBorderColor != 0)
+            //    CRenderEngine::DrawRoundRect(hDC, m_rcItem, m_rcBorderSize.left, m_cxyBorderRound.cx, m_cxyBorderRound.cy, GetAdjustColor(m_dwFocusBorderColor), m_nBorderStyle);
+            //else
+            //    CRenderEngine::DrawRoundRect(hDC, m_rcItem, m_rcBorderSize.left, m_cxyBorderRound.cx, m_cxyBorderRound.cy, GetAdjustColor(m_dwBorderColor), m_nBorderStyle);
+        }
+        else {
+            //if (m_rcBorderSize.right == m_rcBorderSize.left && 
+            //    m_rcBorderSize.top == m_rcBorderSize.left && 
+            //    m_rcBorderSize.bottom == m_rcBorderSize.left) {
+            //}
+            //else {
+
+            //}
+
+            //暂不支持left,top,right,bottom边框不相等的情况，基本没用
+            if (IsFocused() && m_dwFocusBorderColor != 0) {
+                m_pManager->DrawBorder(m_rcItem, m_rcBorderSize.left, m_dwFocusBorderColor);
+            }
+            else {
+                m_pManager->DrawBorder(m_rcItem, m_rcBorderSize.left, m_dwBorderColor);
+            }
+        }
+    }
 }
 
 void CControlUI::DoPostPaint(HDC hDC, const RECT& rcPaint)

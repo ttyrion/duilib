@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "Direct3DRender.h"
-#include <Gdiplus.h>
 #include <fstream>
 #include <vector>
 #include "D3DTypes.h"
@@ -144,6 +143,7 @@ namespace DuiLib {
             false;
         }
 
+        initialized_ = true;
         return true;
     }
 
@@ -295,78 +295,600 @@ namespace DuiLib {
         return true;
     }
 
-    void Direct3DRender::DrawColor(const RECT& render_rect, DWORD dwcolor) {
-        assert(d3d_device_);
-        assert(d3d_immediate_context_);
-        assert(width_);
-        assert(height_);
+    bool Direct3DRender::CreateTextureResource(const UINT width, const UINT height) {
+        CD3D11_TEXTURE2D_DESC tex_desc(DXGI_FORMAT_R8_UNORM, width, height);
+        tex_desc.MipLevels = 1;
 
-        if (!IASetColorLayout()) {
-            return;
+        //UINT channels = sizeof(texture_planes_) / sizeof(ID3D11Texture2D*);
+        for (auto& plane : texture_planes_) {
+            HRESULT hr = d3d_device_->CreateTexture2D(&tex_desc, NULL, &plane);
+            if (FAILED(hr)) {
+                plane = NULL;
+                return false;
+            }
         }
 
-        Color c(dwcolor);
-        XMFLOAT4 color(c.GetR() / 255.0f, c.GetG() / 255.0f, c.GetB() / 255.0f, c.GetA() / 255.0f);
+        CD3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc(D3D11_SRV_DIMENSION_TEXTURE2D);
+        UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
+        for (int i = 0; i < channels; ++i) {
+            //给每一个纹理资源都创建一个纹理视图，这样资源才能被GPU访问: 真正被绑定到渲染管线的是资源视图，而不是资源
+            HRESULT hr = d3d_device_->CreateShaderResourceView(texture_planes_[i], &resource_view_desc, &texture_resource_views_[i]);
+            if (FAILED(hr)) {
+                texture_resource_views_[i] = NULL;
+                return false;
+            }
+        }
 
-        COLOR_VERTEX vertice[] = {
-            XMFLOAT3(MapScreenX(render_rect.left, width_),  MapScreenY(render_rect.top, height_), 0.0f), color, //left-top
-            XMFLOAT3(MapScreenX(render_rect.right, width_), MapScreenY(render_rect.top, height_), 0.0f), color, //right-top
-            XMFLOAT3(MapScreenX(render_rect.right, width_), MapScreenY(render_rect.bottom, height_), 0.0f), color, //right-bottom
-            XMFLOAT3(MapScreenX(render_rect.left, width_),  MapScreenY(render_rect.bottom, height_), 0.0f), color, //left-bottom
-        };
-
-        //d3d_immediate_context_->ClearRenderTargetView(d3d_render_target_view_, reinterpret_cast<const float*>(&color));
-
-        WORD indice[] = {
-            0,1,2,
-            0,2,3
-        };
-
-        D3D11_BUFFER_DESC vertex_buffer_desc;
-        vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-        vertex_buffer_desc.ByteWidth = sizeof(vertice);  //size of the buffer
-        vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
-        vertex_buffer_desc.CPUAccessFlags = 0;
-        vertex_buffer_desc.MiscFlags = 0;
-        vertex_buffer_desc.StructureByteStride = 0;
-        //or we can use Map and UnMap
-        D3D11_SUBRESOURCE_DATA vertex_data;
-        vertex_data.pSysMem = vertice;
-        vertex_data.SysMemPitch = 0;
-        vertex_data.SysMemSlicePitch = 0;
-        ID3D11Buffer *vertex_buffer = NULL;
-        HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
-        Direct3DFailedDebugMsgBox(hr, , L"create color vertex buffer failed.";);
-
-
-        D3D11_BUFFER_DESC index_buffer_desc;
-        index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-        index_buffer_desc.ByteWidth = sizeof(indice);
-        index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-        index_buffer_desc.CPUAccessFlags = 0;
-        index_buffer_desc.MiscFlags = 0;
-        index_buffer_desc.StructureByteStride = 0;
-        D3D11_SUBRESOURCE_DATA index_data;
-        index_data.pSysMem = indice;
-        index_data.SysMemPitch = 0;
-        index_data.SysMemSlicePitch = 0;
-        ID3D11Buffer* index_buffer = NULL;
-        hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
-        Direct3DFailedDebugMsgBox(hr, , L"create color index buffer failed.";);
-
-        unsigned int stride = sizeof(COLOR_VERTEX);
-        unsigned int offset = 0;
-        d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
-        d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
-        d3d_immediate_context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        d3d_immediate_context_->DrawIndexed(sizeof(indice) / sizeof(WORD), 0, 0);
-
-        ReleaseCOMInterface(vertex_buffer);
+        return true;
     }
 
-    void Direct3DRender::DrawBkColor(const RECT&rect, DWORD color) {
+    bool Direct3DRender::UpdateTextureResource(const ImageData& image) {
+        if (resource_width_ != image.width || resource_height_ != image.height) {
+            UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
+            for (int i = 0; i < channels; ++i) {
+                ReleaseCOMInterface(texture_planes_[i]);
+                ReleaseCOMInterface(texture_resource_views_[i]);
+            }
+
+            if (!CreateTextureResource(image.width, image.height)) {
+                return false;
+            }
+        }
+
+        UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
+        if (channels != 4) {
+            return false;
+        }
+
+        /*纹理资源更新方式：
+        1.创建纹理时选择D3D11_USAGE_DEFAULT（GPU可读写）,然后只用UpdateSubresource更新纹理。
+        2.创建纹理时选择D3D11_USAGE_DYNAMIC（GPU-R,CPU-W）加上D3D11_CPU_ACCESS_WRITE, 然后用 Map->memcpy->Unmap方式。
+        第一种方式，即UpdateSubresource效率更高。
+        */
+        d3d_immediate_context_->UpdateSubresource(texture_planes_[0], 0, NULL, image.r.data(), image.width, 0);
+        d3d_immediate_context_->UpdateSubresource(texture_planes_[1], 0, NULL, image.g.data(), image.width, 0);
+        d3d_immediate_context_->UpdateSubresource(texture_planes_[2], 0, NULL, image.b.data(), image.width, 0);
+        d3d_immediate_context_->UpdateSubresource(texture_planes_[3], 0, NULL, image.a.data(), image.width, 0);
+
+        d3d_immediate_context_->PSSetShaderResources(0, channels, texture_resource_views_);
+
+        return true;
+    }
+
+    bool Direct3DRender::SetLinearSamplerState() {
+        // Create the sample state
+        if (!linear_sampler_state_) {
+            D3D11_SAMPLER_DESC sampler_desc = {};
+            sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+            sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+            sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+            sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+            sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+            sampler_desc.MinLOD = 0;
+            sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+            HRESULT hr = d3d_device_->CreateSamplerState(&sampler_desc, &linear_sampler_state_);
+            if (FAILED(hr)) {
+                return false;
+            }
+        }
+
+        d3d_immediate_context_->PSSetSamplers(0, 1, &linear_sampler_state_);
+
+        return true;
+    }
+
+    bool Direct3DRender::FillColor(const RECT& rect, const DWORD color) {
+        return DrawRect(rect, color);
+    }
+
+    bool Direct3DRender::DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image) {
+        if (!initialized_) {
+            return false;
+        }
+
+        assert(d3d_device_);
+        assert(d3d_immediate_context_);
+
+        if (image.empty()) {
+            bool load = LoadImage(image);
+            if (!load) {
+                return false;
+            }
+        }
+
+        RECT rcDest = item_rect;
+        //image.dest配置的区域是相对控件的
+        if (image.dest.left != 0 || image.dest.top != 0 || image.dest.right != 0 || image.dest.bottom != 0) {
+            rcDest.left = item_rect.left + image.dest.left;
+            rcDest.top = item_rect.top + image.dest.top;
+            
+            rcDest.right = item_rect.left + image.dest.right;
+            rcDest.right > item_rect.right ? rcDest.right = item_rect.right : NULL;
+
+            rcDest.bottom = item_rect.top + image.dest.bottom;
+            rcDest.bottom > item_rect.bottom ? rcDest.bottom = item_rect.bottom : NULL;
+        }
+
+        RECT temp_rect = { 0 };
+        if (!::IntersectRect(&temp_rect, &rcDest, &item_rect)) {
+            return false;
+        }
+
+        if (!::IntersectRect(&temp_rect, &rcDest, &paint_rect)) {
+            return false;
+        }
         
+        if (!IASetColorLayout()) {
+            return false;
+        }
+        UpdateTextureResource(image);
+
+        if (image.alpha_blend || image.fade < 255) {
+            //TODO: alpha blend
+
+        }
+        else {
+            UINT index = 0;
+            std::vector<TEXTURE_VERTEX> vertice;
+            std::vector<WORD> indice;
+
+            RECT temp_rect = { 0 };
+            RECT draw_dest_rect = { 0 };
+            RECT picture_source_rect = { 0 };
+
+            // middle
+            draw_dest_rect.left = rcDest.left + image.corner.left;
+            draw_dest_rect.top = rcDest.top + image.corner.top;
+            draw_dest_rect.right = rcDest.right - image.corner.right;
+            draw_dest_rect.bottom = rcDest.bottom - image.corner.bottom;
+
+            //去掉corner控制的间距区域
+            picture_source_rect.left = image.source.left + image.corner.left;
+            picture_source_rect.top = image.source.top + image.corner.top;
+            picture_source_rect.right = image.source.right - image.corner.right;
+            picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
+
+            if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                TEXTURE_VERTEX middle_vertice[] = {
+                    XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                    XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                    XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                    XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                    XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                    XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                    XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                    XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                };
+
+                WORD middle_indice[] = {
+                    vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                    vertice.size(), vertice.size() + 2, vertice.size() + 3
+                };
+
+                for (auto& v : middle_vertice) {
+                    vertice.push_back(v);
+                }
+
+                for (auto& i : middle_indice) {
+                    indice.push_back(i);
+                }
+            }
+
+            // left-top corner
+            if (image.corner.left > 0 && image.corner.top > 0) {
+                draw_dest_rect.left = rcDest.left;
+                draw_dest_rect.top = rcDest.top;
+                draw_dest_rect.right = rcDest.left + image.corner.left;
+                draw_dest_rect.bottom = rcDest.top + image.corner.top;
+
+                picture_source_rect.left = image.source.left;
+                picture_source_rect.top = image.source.top;
+                picture_source_rect.right = image.source.left + image.corner.left;
+                picture_source_rect.bottom = image.source.top + image.corner.top;
+
+                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                    TEXTURE_VERTEX left_top_vertice[] = {
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                    };
+
+                    WORD left_top_indice[] = {
+                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                        vertice.size(), vertice.size() + 2, vertice.size() + 3
+                    };
+
+                    for (auto& v : left_top_vertice) {
+                        vertice.push_back(v);
+                    }
+
+                    for (auto& i : left_top_indice) {
+                        indice.push_back(i);
+                    }
+                }
+            }
+
+            // top
+            if (image.corner.top > 0) {
+                draw_dest_rect.left = rcDest.left + image.corner.left;
+                draw_dest_rect.top = rcDest.top;
+                draw_dest_rect.right = rcDest.right - image.corner.right;
+                draw_dest_rect.bottom = rcDest.top + image.corner.top;
+
+                picture_source_rect.left = image.source.left + image.corner.left;
+                picture_source_rect.top = image.source.top;
+                picture_source_rect.right = image.source.right - image.corner.right;
+                picture_source_rect.bottom = image.source.top + image.corner.top;
+
+                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                    TEXTURE_VERTEX top_vertice[] = {
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                    };
+
+                    WORD top_indice[] = {
+                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                        vertice.size(), vertice.size() + 2, vertice.size() + 3
+                    };
+
+                    for (auto& v : top_vertice) {
+                        vertice.push_back(v);
+                    }
+
+                    for (auto& i : top_indice) {
+                        indice.push_back(i);
+                    }
+                }
+            }
+
+            // right-top corner
+            if (image.corner.right > 0 && image.corner.top > 0) {
+                draw_dest_rect.left = rcDest.right - image.corner.right;
+                draw_dest_rect.top = rcDest.top;
+                draw_dest_rect.right = rcDest.right;
+                draw_dest_rect.bottom = rcDest.top + image.corner.top;
+
+                picture_source_rect.left = image.source.right - image.corner.right;
+                picture_source_rect.top = image.source.top;
+                picture_source_rect.right = image.source.right;
+                picture_source_rect.bottom = image.source.top + image.corner.top;
+
+                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                    TEXTURE_VERTEX right_top_vertice[] = {
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                    };
+
+                    WORD right_top_indice[] = {
+                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                        vertice.size(), vertice.size() + 2, vertice.size() + 3
+                    };
+
+                    for (auto& v : right_top_vertice) {
+                        vertice.push_back(v);
+                    }
+
+                    for (auto& i : right_top_indice) {
+                        indice.push_back(i);
+                    }
+                }
+            }
+
+            // left
+            if (image.corner.left > 0) {
+                draw_dest_rect.left = rcDest.left;
+                draw_dest_rect.top = rcDest.top + image.corner.top;
+                draw_dest_rect.right = rcDest.left + image.corner.left;
+                draw_dest_rect.bottom = rcDest.bottom - image.corner.bottom;
+
+                picture_source_rect.left = image.source.left;
+                picture_source_rect.top = image.source.top + image.corner.top;
+                picture_source_rect.right = image.source.left + image.corner.left;
+                picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
+
+                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                    TEXTURE_VERTEX left_vertice[] = {
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                    };
+
+                    WORD left_indice[] = {
+                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                        vertice.size(), vertice.size() + 2, vertice.size() + 3
+                    };
+
+                    for (auto& v : left_vertice) {
+                        vertice.push_back(v);
+                    }
+
+                    for (auto& i : left_indice) {
+                        indice.push_back(i);
+                    }
+                }
+            }
+
+            // right
+            if (image.corner.right > 0) {
+                draw_dest_rect.left = rcDest.right - image.corner.right;
+                draw_dest_rect.top = rcDest.top + image.corner.top;
+                draw_dest_rect.right = rcDest.right;
+                draw_dest_rect.bottom = rcDest.bottom - image.corner.bottom;
+
+                picture_source_rect.left = image.source.right - image.corner.right;
+                picture_source_rect.top = image.source.top + image.corner.top;
+                picture_source_rect.right = image.source.right;
+                picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
+
+                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                    TEXTURE_VERTEX right_vertice[] = {
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                    };
+
+                    WORD right_indice[] = {
+                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                        vertice.size(), vertice.size() + 2, vertice.size() + 3
+                    };
+
+                    for (auto& v : right_vertice) {
+                        vertice.push_back(v);
+                    }
+
+                    for (auto& i : right_indice) {
+                        indice.push_back(i);
+                    }
+                }
+            }
+
+            // left-bottom
+            if (image.corner.left > 0 && image.corner.bottom > 0) {
+                draw_dest_rect.left = rcDest.left;
+                draw_dest_rect.top = rcDest.bottom - image.corner.bottom;
+                draw_dest_rect.right = rcDest.left + image.corner.left;
+                draw_dest_rect.bottom = rcDest.bottom;
+
+                picture_source_rect.left = image.source.left;
+                picture_source_rect.top = image.source.bottom - image.corner.bottom;
+                picture_source_rect.right = image.source.left + image.corner.left;
+                picture_source_rect.bottom = image.source.bottom;
+
+                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                    TEXTURE_VERTEX left_bottom_vertice[] = {
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                    };
+
+                    WORD left_bottom_indice[] = {
+                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                        vertice.size(), vertice.size() + 2, vertice.size() + 3
+                    };
+
+                    for (auto& v : left_bottom_vertice) {
+                        vertice.push_back(v);
+                    }
+
+                    for (auto& i : left_bottom_indice) {
+                        indice.push_back(i);
+                    }
+                }
+            }
+
+            // bottom
+            if (image.corner.bottom > 0) {
+                draw_dest_rect.left = rcDest.left + image.corner.left;
+                draw_dest_rect.top = rcDest.bottom - image.corner.bottom;
+                draw_dest_rect.right = rcDest.right - image.corner.right;
+                draw_dest_rect.bottom = rcDest.bottom;
+
+                picture_source_rect.left = image.source.left + image.corner.left;
+                picture_source_rect.top = image.source.bottom - image.corner.bottom;
+                picture_source_rect.right = image.source.right - image.corner.right;
+                picture_source_rect.bottom = image.source.bottom;
+
+                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                    TEXTURE_VERTEX bottom_vertice[] = {
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                    };
+
+                    WORD bottom_indice[] = {
+                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                        vertice.size(), vertice.size() + 2, vertice.size() + 3
+                    };
+
+                    for (auto& v : bottom_vertice) {
+                        vertice.push_back(v);
+                    }
+
+                    for (auto& i : bottom_indice) {
+                        indice.push_back(i);
+                    }
+                }
+            }
+
+            // right-bottom
+            if (image.corner.right > 0 && image.corner.bottom > 0) {
+                draw_dest_rect.left = rcDest.right - image.corner.right;
+                draw_dest_rect.top = rcDest.bottom - image.corner.bottom;
+                draw_dest_rect.right = rcDest.right;
+                draw_dest_rect.bottom = rcDest.bottom;
+
+                picture_source_rect.left = image.source.right - image.corner.right;
+                picture_source_rect.top = image.source.bottom - image.corner.bottom;
+                picture_source_rect.right = image.source.right;
+                picture_source_rect.bottom = image.source.bottom;
+
+                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
+                    TEXTURE_VERTEX right_bottom_vertice[] = {
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
+
+                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
+                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
+                    };
+
+                    WORD right_bottom_indice[] = {
+                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                        vertice.size(), vertice.size() + 2, vertice.size() + 3
+                    };
+
+                    for (auto& v : right_bottom_vertice) {
+                        vertice.push_back(v);
+                    }
+
+                    for (auto& i : right_bottom_indice) {
+                        indice.push_back(i);
+                    }
+                }
+            }
+
+            D3D11_BUFFER_DESC vertex_buffer_desc;
+            vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+            vertex_buffer_desc.ByteWidth = sizeof(TEXTURE_VERTEX) * vertice.size();  //size of the buffer
+            vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
+            vertex_buffer_desc.CPUAccessFlags = 0;
+            vertex_buffer_desc.MiscFlags = 0;
+            vertex_buffer_desc.StructureByteStride = 0;
+            //or we can use Map and UnMap
+            D3D11_SUBRESOURCE_DATA vertex_data;
+            vertex_data.pSysMem = vertice.data();
+            vertex_data.SysMemPitch = 0;
+            vertex_data.SysMemSlicePitch = 0;
+            ID3D11Buffer *vertex_buffer = NULL;
+            HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
+            Direct3DFailedDebugMsgBox(hr, false, L"create color vertex buffer failed.";);
+
+
+            D3D11_BUFFER_DESC index_buffer_desc;
+            index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+            index_buffer_desc.ByteWidth = sizeof(WORD) * indice.size();
+            index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+            index_buffer_desc.CPUAccessFlags = 0;
+            index_buffer_desc.MiscFlags = 0;
+            index_buffer_desc.StructureByteStride = 0;
+            D3D11_SUBRESOURCE_DATA index_data;
+            index_data.pSysMem = indice.data();
+            index_data.SysMemPitch = 0;
+            index_data.SysMemSlicePitch = 0;
+            ID3D11Buffer* index_buffer = NULL;
+            hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
+            Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.";);
+
+            unsigned int stride = sizeof(COLOR_VERTEX);
+            unsigned int offset = 0;
+            d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
+            d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
+            d3d_immediate_context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+            d3d_immediate_context_->DrawIndexed(indice.size(), 0, 0);
+
+            ReleaseCOMInterface(vertex_buffer);
+        }
+
+        return true;
+    }
+
+    void Direct3DRender::DrawStatusImage() {
+        
+    }
+
+    void Direct3DRender::DrawText() {
+        
+    }
+
+    bool Direct3DRender::DrawBorder(const RECT& item_rect, const UINT border_size, const DWORD color) {
+        if (::IsRectEmpty(&item_rect) || border_size <= 0) {
+            return false;
+        }
+
+        //left border
+        RECT left = { item_rect.left, item_rect.top, item_rect.left + border_size, item_rect.bottom };
+        bool left_border_succeed = FillColor(left, color);
+
+        //top border
+        RECT top = { item_rect.left + border_size, item_rect.top, item_rect.right,item_rect.top + border_size };
+        bool top_border_succeed = FillColor(top, color);
+
+        //right border
+        RECT right = { item_rect.right - border_size, item_rect.top + border_size, item_rect.right,item_rect.bottom };
+        bool right_border_succeed = FillColor(right, color);
+
+        //bottom border
+        RECT bottom = { item_rect.left + border_size, item_rect.bottom - border_size, item_rect.right - border_size,item_rect.bottom };
+        bool bottom_border_succeed = FillColor(bottom, color);
+
+        return left_border_succeed && top_border_succeed && right_border_succeed && bottom_border_succeed;
     }
 
     bool Direct3DRender::LoadImage(ImageData& image) {
@@ -503,570 +1025,116 @@ namespace DuiLib {
         return true;
     }
 
-    bool Direct3DRender::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image) {
-        if (image.empty()) {
-            bool load = LoadImage(image);
-            if (!load) {
-                return false;
-            }
-        }
+    bool Direct3DRender::DrawColorVertex(const std::vector<COLOR_VERTEX>& vertice, const std::vector<WORD>& indice,
+        const D3D11_PRIMITIVE_TOPOLOGY topo) {
 
-        RECT rcDest = rcItem;
-        //image.dest配置的区域是相对控件的
-        if (image.dest.left != 0 || image.dest.top != 0 || image.dest.right != 0 || image.dest.bottom != 0) {
-            rcDest.left = rcItem.left + image.dest.left;
-            rcDest.top = rcItem.top + image.dest.top;
-            
-            rcDest.right = rcItem.left + image.dest.right;
-            rcDest.right > rcItem.right ? rcDest.right = rcItem.right : NULL;
-
-            rcDest.bottom = rcItem.top + image.dest.bottom;
-            rcDest.bottom > rcItem.bottom ? rcDest.bottom = rcItem.bottom : NULL;
-        }
-
-        RECT rcTemp = { 0 };
-        if (!::IntersectRect(&rcTemp, &rcDest, &rcItem)) {
+        if (!initialized_) {
             return false;
         }
 
-        if (!::IntersectRect(&rcTemp, &rcDest, &rcPaint)) {
-            return false;
-        }
-        
+        assert(d3d_device_);
+        assert(d3d_immediate_context_);
+        assert(width_);
+        assert(height_);
+
         if (!IASetColorLayout()) {
             return false;
         }
-        UpdateTextureResource(image);
 
-        if (image.alpha_blend || image.fade < 255) {
-            //TODO: alpha blend
-
-        }
-        else {
-            UINT index = 0;
-            std::vector<TEXTURE_VERTEX> vertice;
-            std::vector<WORD> indice;
-
-            RECT rcTemp = { 0 };
-            RECT rcDrawDest = { 0 };
-            RECT rcPictureSource = { 0 };
-
-            // middle
-            rcDrawDest.left = rcDest.left + image.corner.left;
-            rcDrawDest.top = rcDest.top + image.corner.top;
-            rcDrawDest.right = rcDest.right - image.corner.right;
-            rcDrawDest.bottom = rcDest.bottom - image.corner.bottom;
-
-            //去掉corner控制的间距区域
-            rcPictureSource.left = image.source.left + image.corner.left;
-            rcPictureSource.top = image.source.top + image.corner.top;
-            rcPictureSource.right = image.source.right - image.corner.right;
-            rcPictureSource.bottom = image.source.bottom - image.corner.bottom;
-
-            if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                TEXTURE_VERTEX middle_vertice[] = {
-                    XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                    XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                    XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                    XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                };
-
-                WORD middle_indice[] = {
-                    vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                    vertice.size(), vertice.size() + 2, vertice.size() + 3
-                };
-
-                for (auto& v : middle_vertice) {
-                    vertice.push_back(v);
-                }
-
-                for (auto& i : middle_indice) {
-                    indice.push_back(i);
-                }
-            }
-
-            // left-top corner
-            if (image.corner.left > 0 && image.corner.top > 0) {
-                rcDrawDest.left = rcDest.left;
-                rcDrawDest.top = rcDest.top;
-                rcDrawDest.right = rcDest.left + image.corner.left;
-                rcDrawDest.bottom = rcDest.top + image.corner.top;
-
-                rcPictureSource.left = image.source.left;
-                rcPictureSource.top = image.source.top;
-                rcPictureSource.right = image.source.left + image.corner.left;
-                rcPictureSource.bottom = image.source.top + image.corner.top;
-
-                if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                    TEXTURE_VERTEX left_top_vertice[] = {
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD left_top_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : left_top_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : left_top_indice) {
-                        indice.push_back(i);
-                    }
-                }
-            }
-
-            // top
-            if (image.corner.top > 0) {
-                rcDrawDest.left = rcDest.left + image.corner.left;
-                rcDrawDest.top = rcDest.top;
-                rcDrawDest.right = rcDest.right - image.corner.right;
-                rcDrawDest.bottom = rcDest.top + image.corner.top;
-
-                rcPictureSource.left = image.source.left + image.corner.left;
-                rcPictureSource.top = image.source.top;
-                rcPictureSource.right = image.source.right - image.corner.right;
-                rcPictureSource.bottom = image.source.top + image.corner.top;
-
-                if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                    TEXTURE_VERTEX top_vertice[] = {
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD top_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : top_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : top_indice) {
-                        indice.push_back(i);
-                    }
-                }
-            }
-
-            // right-top corner
-            if (image.corner.right > 0 && image.corner.top > 0) {
-                rcDrawDest.left = rcDest.right - image.corner.right;
-                rcDrawDest.top = rcDest.top;
-                rcDrawDest.right = rcDest.right;
-                rcDrawDest.bottom = rcDest.top + image.corner.top;
-
-                rcPictureSource.left = image.source.right - image.corner.right;
-                rcPictureSource.top = image.source.top;
-                rcPictureSource.right = image.source.right;
-                rcPictureSource.bottom = image.source.top + image.corner.top;
-
-                if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                    TEXTURE_VERTEX right_top_vertice[] = {
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD right_top_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : right_top_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : right_top_indice) {
-                        indice.push_back(i);
-                    }
-                }
-            }
-
-            // left
-            if (image.corner.left > 0) {
-                rcDrawDest.left = rcDest.left;
-                rcDrawDest.top = rcDest.top + image.corner.top;
-                rcDrawDest.right = rcDest.left + image.corner.left;
-                rcDrawDest.bottom = rcDest.bottom - image.corner.bottom;
-
-                rcPictureSource.left = image.source.left;
-                rcPictureSource.top = image.source.top + image.corner.top;
-                rcPictureSource.right = image.source.left + image.corner.left;
-                rcPictureSource.bottom = image.source.bottom - image.corner.bottom;
-
-                if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                    TEXTURE_VERTEX left_vertice[] = {
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD left_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : left_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : left_indice) {
-                        indice.push_back(i);
-                    }
-                }
-            }
-
-            // right
-            if (image.corner.right > 0) {
-                rcDrawDest.left = rcDest.right - image.corner.right;
-                rcDrawDest.top = rcDest.top + image.corner.top;
-                rcDrawDest.right = rcDest.right;
-                rcDrawDest.bottom = rcDest.bottom - image.corner.bottom;
-
-                rcPictureSource.left = image.source.right - image.corner.right;
-                rcPictureSource.top = image.source.top + image.corner.top;
-                rcPictureSource.right = image.source.right;
-                rcPictureSource.bottom = image.source.bottom - image.corner.bottom;
-
-                if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                    TEXTURE_VERTEX right_vertice[] = {
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD right_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : right_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : right_indice) {
-                        indice.push_back(i);
-                    }
-                }
-            }
-
-            // left-bottom
-            if (image.corner.left > 0 && image.corner.bottom > 0) {
-                rcDrawDest.left = rcDest.left;
-                rcDrawDest.top = rcDest.bottom - image.corner.bottom;
-                rcDrawDest.right = rcDest.left + image.corner.left;
-                rcDrawDest.bottom = rcDest.bottom;
-
-                rcPictureSource.left = image.source.left;
-                rcPictureSource.top = image.source.bottom - image.corner.bottom;
-                rcPictureSource.right = image.source.left + image.corner.left;
-                rcPictureSource.bottom = image.source.bottom;
-
-                if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                    TEXTURE_VERTEX left_bottom_vertice[] = {
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD left_bottom_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : left_bottom_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : left_bottom_indice) {
-                        indice.push_back(i);
-                    }
-                }
-            }
-
-            // bottom
-            if (image.corner.bottom > 0) {
-                rcDrawDest.left = rcDest.left + image.corner.left;
-                rcDrawDest.top = rcDest.bottom - image.corner.bottom;
-                rcDrawDest.right = rcDest.right - image.corner.right;
-                rcDrawDest.bottom = rcDest.bottom;
-
-                rcPictureSource.left = image.source.left + image.corner.left;
-                rcPictureSource.top = image.source.bottom - image.corner.bottom;
-                rcPictureSource.right = image.source.right - image.corner.right;
-                rcPictureSource.bottom = image.source.bottom;
-
-                if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                    TEXTURE_VERTEX bottom_vertice[] = {
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD bottom_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : bottom_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : bottom_indice) {
-                        indice.push_back(i);
-                    }
-                }
-            }
-
-            // right-bottom
-            if (image.corner.right > 0 && image.corner.bottom > 0) {
-                rcDrawDest.left = rcDest.right - image.corner.right;
-                rcDrawDest.top = rcDest.bottom - image.corner.bottom;
-                rcDrawDest.right = rcDest.right;
-                rcDrawDest.bottom = rcDest.bottom;
-
-                rcPictureSource.left = image.source.right - image.corner.right;
-                rcPictureSource.top = image.source.bottom - image.corner.bottom;
-                rcPictureSource.right = image.source.right;
-                rcPictureSource.bottom = image.source.bottom;
-
-                if (::IntersectRect(&rcTemp, &rcPaint, &rcDrawDest)) {
-                    TEXTURE_VERTEX right_bottom_vertice[] = {
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.right, width_), MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.right, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(rcDrawDest.left, width_),  MapScreenY(rcDrawDest.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(rcPictureSource.left, image.width), MapTextureXY(rcPictureSource.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD right_bottom_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : right_bottom_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : right_bottom_indice) {
-                        indice.push_back(i);
-                    }
-                }
-            }
-
-            D3D11_BUFFER_DESC vertex_buffer_desc;
-            vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-            vertex_buffer_desc.ByteWidth = sizeof(TEXTURE_VERTEX) * vertice.size();  //size of the buffer
-            vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
-            vertex_buffer_desc.CPUAccessFlags = 0;
-            vertex_buffer_desc.MiscFlags = 0;
-            vertex_buffer_desc.StructureByteStride = 0;
-            //or we can use Map and UnMap
-            D3D11_SUBRESOURCE_DATA vertex_data;
-            vertex_data.pSysMem = vertice.data();
-            vertex_data.SysMemPitch = 0;
-            vertex_data.SysMemSlicePitch = 0;
-            ID3D11Buffer *vertex_buffer = NULL;
-            HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
-            Direct3DFailedDebugMsgBox(hr, false, L"create color vertex buffer failed.";);
-
-
-            D3D11_BUFFER_DESC index_buffer_desc;
-            index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-            index_buffer_desc.ByteWidth = sizeof(WORD) * indice.size();
-            index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-            index_buffer_desc.CPUAccessFlags = 0;
-            index_buffer_desc.MiscFlags = 0;
-            index_buffer_desc.StructureByteStride = 0;
-            D3D11_SUBRESOURCE_DATA index_data;
-            index_data.pSysMem = indice.data();
-            index_data.SysMemPitch = 0;
-            index_data.SysMemSlicePitch = 0;
-            ID3D11Buffer* index_buffer = NULL;
-            hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
-            Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.";);
-
-            unsigned int stride = sizeof(COLOR_VERTEX);
-            unsigned int offset = 0;
-            d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
-            d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
-            d3d_immediate_context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-            d3d_immediate_context_->DrawIndexed(indice.size(), 0, 0);
-
-            ReleaseCOMInterface(vertex_buffer);
-        }
+        D3D11_BUFFER_DESC vertex_buffer_desc;
+        vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        vertex_buffer_desc.ByteWidth = sizeof(COLOR_VERTEX) * vertice.size();  //size of the buffer
+        vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
+        vertex_buffer_desc.CPUAccessFlags = 0;
+        vertex_buffer_desc.MiscFlags = 0;
+        vertex_buffer_desc.StructureByteStride = 0;
+        //or we can use Map and UnMap
+        D3D11_SUBRESOURCE_DATA vertex_data;
+        vertex_data.pSysMem = vertice.data();
+        vertex_data.SysMemPitch = 0;
+        vertex_data.SysMemSlicePitch = 0;
+
+        ID3D11Buffer *vertex_buffer = NULL;
+        HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
+        Direct3DFailedDebugMsgBox(hr, false, L"create color vertex buffer failed.";);
+
+
+        D3D11_BUFFER_DESC index_buffer_desc;
+        index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        index_buffer_desc.ByteWidth = sizeof(WORD) * indice.size();
+        index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        index_buffer_desc.CPUAccessFlags = 0;
+        index_buffer_desc.MiscFlags = 0;
+        index_buffer_desc.StructureByteStride = 0;
+        D3D11_SUBRESOURCE_DATA index_data;
+        index_data.pSysMem = indice.data();
+        index_data.SysMemPitch = 0;
+        index_data.SysMemSlicePitch = 0;
+
+        ID3D11Buffer* index_buffer = NULL;
+        hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
+        Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.";);
+
+        unsigned int stride = sizeof(COLOR_VERTEX);
+        unsigned int offset = 0;
+        d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
+        d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
+        d3d_immediate_context_->IASetPrimitiveTopology(topo);
+
+        d3d_immediate_context_->DrawIndexed(indice.size(), 0, 0);
+
+        ReleaseCOMInterface(index_buffer);
+        ReleaseCOMInterface(vertex_buffer);
 
         return true;
     }
 
-    void Direct3DRender::DrawStatusImage() {
-        
-    }
-
-    void Direct3DRender::DrawText() {
-        
-    }
-
-    void Direct3DRender::DrawBorder() {
-        
-    }
-
-    bool Direct3DRender::CreateTextureResource(const UINT width, const UINT height) {
-        CD3D11_TEXTURE2D_DESC tex_desc(DXGI_FORMAT_R8_UNORM, width, height);
-        tex_desc.MipLevels = 1;
-
-        //UINT channels = sizeof(texture_planes_) / sizeof(ID3D11Texture2D*);
-        for (auto& plane : texture_planes_) {
-            HRESULT hr = d3d_device_->CreateTexture2D(&tex_desc, NULL, &plane);
-            if (FAILED(hr)) {
-                plane = NULL;
-                return false;
-            }
-        }
-
-        CD3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc(D3D11_SRV_DIMENSION_TEXTURE2D);
-        UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
-        for (int i = 0; i < channels; ++i) {
-            //给每一个纹理资源都创建一个纹理视图，这样资源才能被GPU访问: 真正被绑定到渲染管线的是资源视图，而不是资源
-            HRESULT hr = d3d_device_->CreateShaderResourceView(texture_planes_[i], &resource_view_desc, &texture_resource_views_[i]);
-            if (FAILED(hr)) {
-                texture_resource_views_[i] = NULL;
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    bool Direct3DRender::UpdateTextureResource(const ImageData& image) {
-        if (resource_width_ != image.width || resource_height_ != image.height) {
-            UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
-            for (int i = 0; i < channels; ++i) {
-                ReleaseCOMInterface(texture_planes_[i]);
-                ReleaseCOMInterface(texture_resource_views_[i]);
-            }
-
-            if (!CreateTextureResource(image.width, image.height)) {
-                return false;
-            }
-        }
-
-        UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
-        if (channels != 4) {
+    bool Direct3DRender::DrawLine(const POINT& begin, const POINT& end, const DWORD dwColor) {
+        if (!initialized_) {
             return false;
         }
 
-        /*纹理资源更新方式：
-        1.创建纹理时选择D3D11_USAGE_DEFAULT（GPU可读写）,然后只用UpdateSubresource更新纹理。
-        2.创建纹理时选择D3D11_USAGE_DYNAMIC（GPU-R,CPU-W）加上D3D11_CPU_ACCESS_WRITE, 然后用 Map->memcpy->Unmap方式。
-        第一种方式，即UpdateSubresource效率更高。
-        */
-        d3d_immediate_context_->UpdateSubresource(texture_planes_[0], 0, NULL, image.r.data(), image.width, 0);
-        d3d_immediate_context_->UpdateSubresource(texture_planes_[1], 0, NULL, image.g.data(), image.width, 0);
-        d3d_immediate_context_->UpdateSubresource(texture_planes_[2], 0, NULL, image.b.data(), image.width, 0);
-        d3d_immediate_context_->UpdateSubresource(texture_planes_[3], 0, NULL, image.a.data(), image.width, 0);
+        float begin_x = MapScreenX(begin.x, width_);
+        float begin_y = MapScreenY(begin.y, height_);
+        float end_x = MapScreenX(end.x, width_);
+        float end_y = MapScreenY(end.y, height_);
 
-        d3d_immediate_context_->PSSetShaderResources(0, channels, texture_resource_views_);
+        XMFLOAT4 color(GETR(dwColor) / 255.0f, GETG(dwColor) / 255.0f, GETB(dwColor) / 255.0f, GETA(dwColor) / 255.0f);
+        COLOR_VERTEX temp_v[] = {
+            XMFLOAT3(begin_y,  begin_y, 0.0f), color,
+            XMFLOAT3(end_x, end_y, 0.0f), color
+        };
+        WORD temp_i[] = {
+            0,1
+        };
 
-        return true;
+        std::vector<COLOR_VERTEX> vertice(temp_v, temp_v + sizeof(temp_v) / sizeof(COLOR_VERTEX));
+        std::vector<WORD> indice(temp_i, temp_i + sizeof(temp_i) / sizeof(WORD));
+
+        return DrawColorVertex(vertice, indice, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
     }
 
-    bool Direct3DRender::SetLinearSamplerState() {
-        // Create the sample state
-        if (!linear_sampler_state_) {
-            D3D11_SAMPLER_DESC sampler_desc = {};
-            sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-            sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-            sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-            sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-            sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-            sampler_desc.MinLOD = 0;
-            sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-            HRESULT hr = d3d_device_->CreateSamplerState(&sampler_desc, &linear_sampler_state_);
-            if (FAILED(hr)) {
-                return false;
-            }
-        }
+    bool Direct3DRender::DrawRect(const RECT& rect, const DWORD dwColor) {
+        XMFLOAT4 color(GETR(dwColor) / 255.0f, GETG(dwColor) / 255.0f, GETB(dwColor) / 255.0f, GETA(dwColor) / 255.0f);
+        COLOR_VERTEX temp_v[] = {
+            XMFLOAT3(MapScreenX(rect.left, width_),  MapScreenY(rect.top, height_), 0.0f), color, //left-top
+            XMFLOAT3(MapScreenX(rect.right, width_), MapScreenY(rect.top, height_), 0.0f), color, //right-top
+            XMFLOAT3(MapScreenX(rect.right, width_), MapScreenY(rect.bottom, height_), 0.0f), color, //right-bottom
+            XMFLOAT3(MapScreenX(rect.left, width_),  MapScreenY(rect.bottom, height_), 0.0f), color //left-bottom
+        };
 
-        d3d_immediate_context_->PSSetSamplers(0, 1, &linear_sampler_state_);
+        //d3d_immediate_context_->ClearRenderTargetView(d3d_render_target_view_, reinterpret_cast<const float*>(&color));
 
-        return true;
-    }
+        WORD temp_i[] = {
+            0,1,2,
+            0,2,3
+        };
+
+        std::vector<COLOR_VERTEX> vertice(temp_v, temp_v + sizeof(temp_v) / sizeof(COLOR_VERTEX));
+        std::vector<WORD> indice(temp_i, temp_i + sizeof(temp_i) / sizeof(WORD));
+        
+        return DrawColorVertex(vertice, indice);
+    }   
 
     std::string Direct3DRender::LoadShader(const std::string& cso_file) {
         std::ifstream ifs;

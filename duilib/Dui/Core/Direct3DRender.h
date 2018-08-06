@@ -1,6 +1,7 @@
 #pragma once
 #include <d3d11.h>
 #include <sstream>
+#include <vector>
 #include "D3DTypes.h"
 
 #if defined(DEBUG) || defined(_DEBUG)
@@ -20,13 +21,12 @@
 #define ReleaseCOMInterface(x) { if(x){ x->Release(); x = NULL; } }
 #define MapScreenX(x,width) { (x-(float)width/2) / (width / 2) }
 #define MapScreenY(y,height) { -(y-(float)height/2) / (height / 2) }
-
 #define MapTextureXY(c,d) { c / (float)d }
 
-//#define GetA(color) (color && 0xFF000000) >> 24
-//#define GetR(color) (color && 0x00FF0000) >> 16
-//#define GetG(color) (color && 0x0000FF00) >> 8
-//#define GetB(color) (color && 0x000000FF)
+#define GETA(color) (int)((color & 0xFF000000) >> 24)
+#define GETR(color) (int)((color & 0x00FF0000) >> 16)
+#define GETG(color) (int)((color & 0x0000FF00) >> 8)
+#define GETB(color) (int)(color & 0x000000FF)
 
 namespace DuiLib {
     class DUILIB_API Direct3DRender
@@ -41,15 +41,11 @@ namespace DuiLib {
         void ResizeRender(const RECT& render_rect);
         void PresentScene();
 
-        void DrawColor(const RECT& render_rect, DWORD dwcolor);
-
-
-        void DrawBkColor(const RECT&rect, DWORD color);
-        bool LoadImage(ImageData& image);
-        bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image);
+        bool FillColor(const RECT& rect, const DWORD color);
+        bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image);
         void DrawStatusImage();
         void DrawText();
-        void DrawBorder();
+        bool DrawBorder(const RECT& item_rect, const UINT border_size, const DWORD color);
 
     private:
         bool IASetColorLayout();
@@ -58,9 +54,15 @@ namespace DuiLib {
         bool CreateTextureResource(const UINT width, const UINT height);
         bool UpdateTextureResource(const ImageData& image);
         bool SetLinearSamplerState();
+
+        bool LoadImage(ImageData& image);
+        bool DrawColorVertex(const std::vector<COLOR_VERTEX>& vertice, const std::vector<WORD>& indice, const D3D11_PRIMITIVE_TOPOLOGY topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        bool DrawLine(const POINT& begin, const POINT& end, const DWORD dwcolor);
+        bool DrawRect(const RECT& rect, const DWORD color);
         
         std::string LoadShader(const std::string& cso_file);
     private:
+        bool initialized_ = false;
         UINT width_ = 0;
         UINT height_ = 0;
         UINT x4_msaa_uality_ = 0;
