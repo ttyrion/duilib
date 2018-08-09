@@ -13,7 +13,7 @@ namespace DuiLib {
         //九宫格绘制，控制图片source区域：四条边x或y方向拉伸、四角不拉伸、中间区域x和y方向同时拉伸
         RECT corner = { 0 };
         DWORD mask = 0;
-        UINT fade = 0;
+        UINT fade = 255;
         bool alpha_blend = false;
         CDuiString sDrawString;  //bkimage
         CDuiString sImageName;   //bkimage file
@@ -32,7 +32,7 @@ namespace DuiLib {
             source.left = source.top = source.right = source.bottom = 0;
             corner.left = corner.top = corner.right = corner.bottom = 0;
             mask = 0;
-            fade = 0;
+            fade = 255;
             sDrawString.Empty();
             sImageName.Empty();
             r.clear();

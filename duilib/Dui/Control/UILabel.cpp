@@ -483,6 +483,156 @@ namespace DuiLib
 		}
 	}
 
+    void CLabelUI::PaintText() {
+        if (!m_pManager) {
+            return;
+        }
+
+        if (m_dwTextColor == 0) m_dwTextColor = m_pManager->GetDefaultFontColor();
+        if (m_dwDisabledTextColor == 0) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+
+        RECT rc = m_rcItem;
+        rc.left += m_rcTextPadding.left;
+        rc.right -= m_rcTextPadding.right;
+        rc.top += m_rcTextPadding.top;
+        rc.bottom -= m_rcTextPadding.bottom;
+
+        if (!GetEnabledEffect())
+        {
+            if (m_sText.IsEmpty()) return;
+            int nLinks = 0;
+            //TODO: text style
+
+            //if (IsEnabled()) {
+            //    if (m_bShowHtml)
+            //        CRenderEngine::DrawHtmlText(hDC, m_pManager, rc, m_sText, m_dwTextColor, NULL, NULL, nLinks, m_iFont, m_uTextStyle);
+            //    else
+            //        CRenderEngine::DrawText(hDC, m_pManager, rc, m_sText, m_dwTextColor, \
+            //            m_iFont, m_uTextStyle);
+            //}
+            //else {
+            //    if (m_bShowHtml)
+            //        CRenderEngine::DrawHtmlText(hDC, m_pManager, rc, m_sText, m_dwDisabledTextColor, \
+            //            NULL, NULL, nLinks, m_iFont, m_uTextStyle);
+            //    else
+            //        CRenderEngine::DrawText(hDC, m_pManager, rc, m_sText, m_dwDisabledTextColor, \
+            //            m_iFont, m_uTextStyle);
+            //}
+
+            if (IsEnabled()) {
+                m_pManager->DrawText(rc, m_sText, m_dwTextColor);
+            }
+            else {
+                m_pManager->DrawText(rc, m_sText, m_dwDisabledTextColor);
+            }
+        }
+        else
+        {
+            //TODO: stroke...
+#if 0
+#ifdef _USE_GDIPLUS
+            Font	nFont(hDC, m_pManager->GetFont(GetFont()));
+            Graphics nGraphics(hDC);
+            nGraphics.SetTextRenderingHint(TextRenderingHintAntiAlias);
+
+            StringFormat format;
+            StringAlignment sa = StringAlignment::StringAlignmentNear;
+            if ((m_uTextStyle & DT_VCENTER) != 0) sa = StringAlignment::StringAlignmentCenter;
+            else if ((m_uTextStyle & DT_BOTTOM) != 0) sa = StringAlignment::StringAlignmentFar;
+            format.SetLineAlignment((StringAlignment)sa);
+            sa = StringAlignment::StringAlignmentNear;
+            if ((m_uTextStyle & DT_CENTER) != 0) sa = StringAlignment::StringAlignmentCenter;
+            else if ((m_uTextStyle & DT_RIGHT) != 0) sa = StringAlignment::StringAlignmentFar;
+            format.SetAlignment((StringAlignment)sa);
+
+            RectF nRc((float)rc.left, (float)rc.top, (float)rc.right - rc.left, (float)rc.bottom - rc.top);
+            RectF nShadowRc = nRc;
+            nShadowRc.X += m_ShadowOffset.X;
+            nShadowRc.Y += m_ShadowOffset.Y;
+
+            int nGradientLength = GetGradientLength();
+
+            if (nGradientLength == 0)
+                nGradientLength = (rc.bottom - rc.top);
+
+            LinearGradientBrush nLineGrBrushA(Point(GetGradientAngle(), 0), Point(0, nGradientLength), ARGB2Color(GetTextShadowColorA()), ARGB2Color(GetTextShadowColorB() == -1 ? GetTextShadowColorA() : GetTextShadowColorB()));
+            LinearGradientBrush nLineGrBrushB(Point(GetGradientAngle(), 0), Point(0, nGradientLength), ARGB2Color(GetTextColor()), ARGB2Color(GetTextColor1() == -1 ? GetTextColor() : GetTextColor1()));
+
+            if (GetEnabledLuminous())
+            {
+                // from http://bbs.csdn.net/topics/390346428
+                int iFuzzyWidth = (int)(nRc.Width / GetLuminousFuzzy());
+                if (iFuzzyWidth < 1) iFuzzyWidth = 1;
+                int iFuzzyHeight = (int)(nRc.Height / GetLuminousFuzzy());
+                if (iFuzzyHeight < 1) iFuzzyHeight = 1;
+                RectF nTextRc(0.0f, 0.0f, nRc.Width, nRc.Height);
+
+                Bitmap Bit1((INT)nRc.Width, (INT)nRc.Height);
+                Graphics g1(&Bit1);
+                g1.SetSmoothingMode(SmoothingModeAntiAlias);
+                g1.SetTextRenderingHint(TextRenderingHintAntiAlias);
+                g1.SetCompositingQuality(CompositingQualityAssumeLinear);
+                Bitmap Bit2(iFuzzyWidth, iFuzzyHeight);
+                Graphics g2(&Bit2);
+                g2.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+                g2.SetPixelOffsetMode(PixelOffsetModeNone);
+
+                FontFamily ftFamily;
+                nFont.GetFamily(&ftFamily);
+                int iLen = wcslen(m_pWideText);
+                g1.DrawString(m_pWideText, iLen, &nFont, nRc, &format, &nLineGrBrushB);
+
+                g2.DrawImage(&Bit1, 0, 0, (int)iFuzzyWidth, (int)iFuzzyHeight);
+                g1.Clear(Color(0));
+                g1.DrawImage(&Bit2, (int)m_ShadowOffset.X, (int)m_ShadowOffset.Y, (int)nRc.Width, (int)nRc.Height);
+                g1.SetTextRenderingHint(TextRenderingHintAntiAlias);
+
+                nGraphics.DrawImage(&Bit1, nRc.X, nRc.Y);
+            }
+
+            if (GetEnabledStroke() && GetStrokeColor() > 0)
+            {
+                LinearGradientBrush nLineGrBrushStroke(Point(GetGradientAngle(), 0), Point(0, rc.bottom - rc.top + 2), ARGB2Color(GetStrokeColor()), ARGB2Color(GetStrokeColor()));
+#ifdef _UNICODE
+                nRc.Offset(-1, 0);
+                nGraphics.DrawString(m_sText, m_sText.GetLength(), &nFont, nRc, &format, &nLineGrBrushStroke);
+                nRc.Offset(2, 0);
+                nGraphics.DrawString(m_sText, m_sText.GetLength(), &nFont, nRc, &format, &nLineGrBrushStroke);
+                nRc.Offset(-1, -1);
+                nGraphics.DrawString(m_sText, m_sText.GetLength(), &nFont, nRc, &format, &nLineGrBrushStroke);
+                nRc.Offset(0, 2);
+                nGraphics.DrawString(m_sText, m_sText.GetLength(), &nFont, nRc, &format, &nLineGrBrushStroke);
+                nRc.Offset(0, -1);
+#else
+                int iLen = wcslen(m_pWideText);
+                nRc.Offset(-1, 0);
+                nGraphics.DrawString(m_pWideText, iLen, &nFont, nRc, &format, &nLineGrBrushStroke);
+                nRc.Offset(2, 0);
+                nGraphics.DrawString(m_pWideText, iLen, &nFont, nRc, &format, &nLineGrBrushStroke);
+                nRc.Offset(-1, -1);
+                nGraphics.DrawString(m_pWideText, iLen, &nFont, nRc, &format, &nLineGrBrushStroke);
+                nRc.Offset(0, 2);
+                nGraphics.DrawString(m_pWideText, iLen, &nFont, nRc, &format, &nLineGrBrushStroke);
+                nRc.Offset(0, -1);
+#endif	
+            }
+#ifdef _UNICODE
+            if (GetEnabledShadow() && (GetTextShadowColorA() > 0 || GetTextShadowColorB() > 0))
+                nGraphics.DrawString(m_sText, m_sText.GetLength(), &nFont, nShadowRc, &format, &nLineGrBrushA);
+
+            nGraphics.DrawString(m_sText, m_sText.GetLength(), &nFont, nRc, &format, &nLineGrBrushB);
+#else
+            int iLen = wcslen(m_pWideText);
+            if (GetEnabledShadow() && (GetTextShadowColorA() > 0 || GetTextShadowColorB() > 0))
+                nGraphics.DrawString(m_pWideText, iLen, &nFont, nShadowRc, &format, &nLineGrBrushA);
+
+            nGraphics.DrawString(m_pWideText, iLen, &nFont, nRc, &format, &nLineGrBrushB);
+#endif
+#endif
+#endif 0
+        }
+    }
+
 	void CLabelUI::SetShadowOffset( int _offset,int _angle )
 	{
 		if(_angle > 180 || _angle < -180) return;

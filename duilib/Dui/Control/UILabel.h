@@ -49,6 +49,7 @@ namespace DuiLib
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
 		void PaintText(HDC hDC);
+        void PaintText() override;
 
 #ifdef _USE_GDIPLUS
 		void		SetEnabledEffect(bool _EnabledEffect);

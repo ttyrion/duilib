@@ -94,19 +94,23 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DUI_EXPORTS;UILIB_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(DuilibRoot);$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DuilibRoot);$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;$(DuilibRoot)\FreeType\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;libpng16.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(DuilibRoot)\lib\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(DuilibRoot)\lib\$(Configuration)\;$(DuilibRoot)\FreeType\win32</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(DuilibRoot)\duilib\$(Configuration)\Dui.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.dll 
 copy $(DuilibRoot)\duilib\$(Configuration)\Dui.pdb $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.pdb
 copy $(DuilibRoot)\duilib\$(Configuration)\cv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cv.dll
-copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cp.dll</Command>
+copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cp.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\gtv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\gtv.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\gtp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\gtp.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\rtv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\rtv.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\rtp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\rtp.dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -131,20 +135,25 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DUI_EXPORTS;UILIB_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(DuilibRoot);$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DuilibRoot);$(DuilibRoot)\duilib\$(ProjectName);$(DuilibRoot)\DirectXMath\Inc;$(DuilibRoot)\FreeType\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>d3d11.lib;libpng16.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(DuilibRoot)\lib\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(DuilibRoot)\lib\$(Configuration)\;$(DuilibRoot)\FreeType\win32</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(DuilibRoot)\duilib\$(Configuration)\Dui.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.dll 
+copy $(DuilibRoot)\duilib\$(Configuration)\Dui.pdb $(DuilibRoot)\Projects\DuiImage\$(Configuration)\Dui.pdb
 copy $(DuilibRoot)\duilib\$(Configuration)\cv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cv.dll
-copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cp.dll</Command>
+copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\cp.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\gtv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\gtv.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\gtp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\gtp.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\rtv.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\rtv.dll
+copy $(DuilibRoot)\duilib\$(Configuration)\rtp.dll $(DuilibRoot)\Projects\DuiImage\$(Configuration)\rtp.dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -189,6 +198,7 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
     <ClInclude Include="Core\D3DTypes.h" />
     <ClInclude Include="Core\Direct3DImage.h" />
     <ClInclude Include="Core\Direct3DRender.h" />
+    <ClInclude Include="Core\FreeTypeFont.h" />
     <ClInclude Include="Core\UIBase.h" />
     <ClInclude Include="Core\UIContainer.h" />
     <ClInclude Include="Core\UIControl.h" />
@@ -235,6 +245,7 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
     <ClCompile Include="Control\UIWebBrowser.cpp" />
     <ClCompile Include="Core\Direct3DImage.cpp" />
     <ClCompile Include="Core\Direct3DRender.cpp" />
+    <ClCompile Include="Core\FreeTypeFont.cpp" />
     <ClCompile Include="Core\UIBase.cpp" />
     <ClCompile Include="Core\UIContainer.cpp" />
     <ClCompile Include="Core\UIControl.cpp" />
@@ -297,7 +308,7 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
     <None Include="Utils\flash11.tlh" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Core\ColorPixel.hlsl">
+    <FxCompile Include="Core\shader\ColorPixel.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)cp.dll</ObjectFileOutput>
@@ -305,23 +316,45 @@ copy $(DuilibRoot)\duilib\$(Configuration)\cp.dll $(DuilibRoot)\Projects\DuiImag
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)cp.dll</ObjectFileOutput>
     </FxCompile>
-    <FxCompile Include="Core\ColorVertex.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)cv.dll</ObjectFileOutput>
+    <FxCompile Include="Core\shader\ColorVertex.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)cv.dll</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="Core\TexturePixel.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)tp.dll</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="Core\TextureVertex.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)tv.dll</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)cv.dll</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Core\shader\GrayTexturePixel.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)gtp.dll</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)gtp.dll</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Core\shader\GrayTextureVertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)gtv.dll</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)gtv.dll</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Core\shader\RGBATexturePixel.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)rtp.dll</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)rtp.dll</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="Core\shader\RGBATextureVertex.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)rtv.dll</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)rtv.dll</ObjectFileOutput>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

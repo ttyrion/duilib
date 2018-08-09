@@ -41,15 +41,17 @@ namespace DuiLib {
         void ResizeRender(const RECT& render_rect);
         void PresentScene();
 
-        bool FillColor(const RECT& rect, const DWORD color);
+        bool FillColor(const RECT& rect, DWORD color);
         bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image);
         void DrawStatusImage();
-        void DrawText();
-        bool DrawBorder(const RECT& item_rect, const UINT border_size, const DWORD color);
+        void DrawText(const RECT& text_rect, const CDuiString& text, DWORD color);
+        bool DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color);
 
     private:
         bool IASetColorLayout();
-        bool IASetTextureLayout();
+        bool IASetTextureLayout(const std::string& vertex_shader_file, const std::string& pixel_shader_file);
+        bool IASetRGBATextureLayout();
+        bool IASetGrayTextureLayout();
         
         bool CreateTextureResource(const UINT width, const UINT height);
         bool UpdateTextureResource(const ImageData& image);
@@ -57,8 +59,8 @@ namespace DuiLib {
 
         bool LoadImage(ImageData& image);
         bool DrawColorVertex(const std::vector<COLOR_VERTEX>& vertice, const std::vector<WORD>& indice, const D3D11_PRIMITIVE_TOPOLOGY topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        bool DrawLine(const POINT& begin, const POINT& end, const DWORD dwcolor);
-        bool DrawRect(const RECT& rect, const DWORD color);
+        bool DrawLine(const POINT& begin, const POINT& end, DWORD dwcolor);
+        bool DrawRect(const RECT& rect, DWORD color);
         
         std::string LoadShader(const std::string& cso_file);
     private:

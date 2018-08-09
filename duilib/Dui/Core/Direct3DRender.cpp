@@ -4,6 +4,7 @@
 #include <vector>
 #include "D3DTypes.h"
 #include "Direct3DImage.h"
+#include "FreeTypeFont.h"
 
 using namespace DirectX;
 
@@ -143,11 +144,16 @@ namespace DuiLib {
             false;
         }
 
+        if (!FreeTypeFont::Init()) {
+            return false;
+        }         
+
         initialized_ = true;
         return true;
     }
 
     void Direct3DRender::ReleaseDirect3D() {
+        FreeTypeFont::UnInit();
         ReleaseCOMInterface(d3d_swap_chain_);
         ReleaseCOMInterface(d3d_immediate_context_);
         ReleaseCOMInterface(d3d_device_);
@@ -217,6 +223,45 @@ namespace DuiLib {
         d3d_swap_chain_->Present(0, 0);
     }
 
+    bool Direct3DRender::IASetTextureLayout(const std::string& vertex_shader_file, const std::string& pixel_shader_file) {
+        assert(d3d_device_);
+        assert(d3d_immediate_context_);
+
+        std::string vertex_shader_binary = LoadShader(vertex_shader_file);
+        std::string pixel_shader_binary = LoadShader(pixel_shader_file);
+
+        if (pixel_shader_binary.empty() || vertex_shader_binary.empty()) {
+            return false;
+        }
+
+        ID3D11VertexShader* vertex_shader = NULL;
+        HRESULT hr = d3d_device_->CreateVertexShader(vertex_shader_binary.data(), vertex_shader_binary.size(), NULL, &vertex_shader);
+        Direct3DFailedDebugMsgBox(hr, false, L"create vertex shader failed.");
+        d3d_immediate_context_->VSSetShader(vertex_shader, NULL, 0);
+
+        ID3D11PixelShader* pixel_shader = NULL;
+        hr = d3d_device_->CreatePixelShader(pixel_shader_binary.data(), pixel_shader_binary.size(), NULL, &pixel_shader);
+        Direct3DFailedDebugMsgBox(hr, false, L"create pixel shader failed.");
+        d3d_immediate_context_->PSSetShader(pixel_shader, NULL, 0);
+
+        D3D11_INPUT_ELEMENT_DESC vertex_desc[] = {
+            { "POSITION",0, DXGI_FORMAT_R32G32B32_FLOAT ,0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD",0, DXGI_FORMAT_R32G32_FLOAT ,0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+        };
+
+        int num = sizeof(vertex_desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+        ID3D11InputLayout* input_layout = NULL;
+        hr = d3d_device_->CreateInputLayout(vertex_desc, num, vertex_shader_binary.data(), vertex_shader_binary.size(), &input_layout);
+        Direct3DFailedDebugMsgBox(hr, false, L"create input layout failed.");
+        d3d_immediate_context_->IASetInputLayout(input_layout);
+
+        ReleaseCOMInterface(input_layout);
+        ReleaseCOMInterface(pixel_shader);
+        ReleaseCOMInterface(vertex_shader);
+
+        return true;
+    }
+
     bool Direct3DRender::IASetColorLayout() {
         assert(d3d_device_);
         assert(d3d_immediate_context_);
@@ -256,43 +301,12 @@ namespace DuiLib {
         return true;
     }
 
-    bool Direct3DRender::IASetTextureLayout() {
-        assert(d3d_device_);
-        assert(d3d_immediate_context_);
+    bool Direct3DRender::IASetRGBATextureLayout() {
+        return IASetTextureLayout("rtv.dll", "rtp.dll");
+    }
 
-        std::string pixel_shader_binary = LoadShader("tp.dll");
-        std::string vertex_shader_binary = LoadShader("tv.dll");
-
-        if (pixel_shader_binary.empty() || vertex_shader_binary.empty()) {
-            return false;
-        }
-
-        ID3D11VertexShader* vertex_shader = NULL;
-        HRESULT hr = d3d_device_->CreateVertexShader(vertex_shader_binary.data(), vertex_shader_binary.size(), NULL, &vertex_shader);
-        Direct3DFailedDebugMsgBox(hr, false, L"create vertex shader failed.");
-        d3d_immediate_context_->VSSetShader(vertex_shader, NULL, 0);
-
-        ID3D11PixelShader* pixel_shader = NULL;
-        hr = d3d_device_->CreatePixelShader(pixel_shader_binary.data(), pixel_shader_binary.size(), NULL, &pixel_shader);
-        Direct3DFailedDebugMsgBox(hr, false, L"create pixel shader failed.");
-        d3d_immediate_context_->PSSetShader(pixel_shader, NULL, 0);
-
-        D3D11_INPUT_ELEMENT_DESC vertex_desc[] = {
-            { "POSITION",0, DXGI_FORMAT_R32G32B32_FLOAT ,0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD",0, DXGI_FORMAT_R32G32_FLOAT ,0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-        };
-
-        int num = sizeof(vertex_desc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
-        ID3D11InputLayout* input_layout = NULL;
-        hr = d3d_device_->CreateInputLayout(vertex_desc, num, vertex_shader_binary.data(), vertex_shader_binary.size(), &input_layout);
-        Direct3DFailedDebugMsgBox(hr, false, L"create input layout failed.");
-        d3d_immediate_context_->IASetInputLayout(input_layout);
-
-        ReleaseCOMInterface(input_layout);
-        ReleaseCOMInterface(pixel_shader);
-        ReleaseCOMInterface(vertex_shader);
-
-        return true;
+    bool Direct3DRender::IASetGrayTextureLayout() {
+        return IASetTextureLayout("gtv.dll", "gtp.dll");
     }
 
     bool Direct3DRender::CreateTextureResource(const UINT width, const UINT height) {
@@ -377,7 +391,7 @@ namespace DuiLib {
         return true;
     }
 
-    bool Direct3DRender::FillColor(const RECT& rect, const DWORD color) {
+    bool Direct3DRender::FillColor(const RECT& rect, DWORD color) {
         return DrawRect(rect, color);
     }
 
@@ -418,7 +432,7 @@ namespace DuiLib {
             return false;
         }
         
-        if (!IASetColorLayout()) {
+        if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
             return false;
         }
         UpdateTextureResource(image);
@@ -431,6 +445,35 @@ namespace DuiLib {
             UINT index = 0;
             std::vector<TEXTURE_VERTEX> vertice;
             std::vector<WORD> indice;
+
+            auto generate_vertice = [this, &vertice, &indice, &image](const RECT& dest, const RECT& source) {
+                TEXTURE_VERTEX temp_vertice[] = {
+                    XMFLOAT3(MapScreenX(dest.left, width_),  MapScreenY(dest.top, height_), 0.0f),
+                    XMFLOAT2(MapTextureXY(source.left, image.width), MapTextureXY(source.top, image.height)), //left-top
+
+                    XMFLOAT3(MapScreenX(dest.right, width_), MapScreenY(dest.top, height_), 0.0f),
+                    XMFLOAT2(MapTextureXY(source.right, image.width), MapTextureXY(source.top, image.height)), //right-top
+
+                    XMFLOAT3(MapScreenX(dest.right, width_), MapScreenY(dest.bottom, height_), 0.0f),
+                    XMFLOAT2(MapTextureXY(source.right, image.width), MapTextureXY(source.bottom, image.height)), //right-bottom
+
+                    XMFLOAT3(MapScreenX(dest.left, width_),  MapScreenY(dest.bottom, height_), 0.0f),
+                    XMFLOAT2(MapTextureXY(source.left, image.width), MapTextureXY(source.bottom, image.height)), //left-bottom
+                };
+
+                WORD temp_indice[] = {
+                    vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                    vertice.size(), vertice.size() + 2, vertice.size() + 3
+                };
+
+                for (auto& v : temp_vertice) {
+                    vertice.push_back(v);
+                }
+
+                for (auto& i : temp_indice) {
+                    indice.push_back(i);
+                }
+            };
 
             RECT temp_rect = { 0 };
             RECT draw_dest_rect = { 0 };
@@ -449,32 +492,7 @@ namespace DuiLib {
             picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
 
             if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                TEXTURE_VERTEX middle_vertice[] = {
-                    XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                    XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                    XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                    XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                };
-
-                WORD middle_indice[] = {
-                    vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                    vertice.size(), vertice.size() + 2, vertice.size() + 3
-                };
-
-                for (auto& v : middle_vertice) {
-                    vertice.push_back(v);
-                }
-
-                for (auto& i : middle_indice) {
-                    indice.push_back(i);
-                }
+                generate_vertice(draw_dest_rect, picture_source_rect);
             }
 
             // left-top corner
@@ -490,32 +508,7 @@ namespace DuiLib {
                 picture_source_rect.bottom = image.source.top + image.corner.top;
 
                 if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    TEXTURE_VERTEX left_top_vertice[] = {
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD left_top_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : left_top_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : left_top_indice) {
-                        indice.push_back(i);
-                    }
+                    generate_vertice(draw_dest_rect, picture_source_rect);
                 }
             }
 
@@ -532,32 +525,7 @@ namespace DuiLib {
                 picture_source_rect.bottom = image.source.top + image.corner.top;
 
                 if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    TEXTURE_VERTEX top_vertice[] = {
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD top_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : top_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : top_indice) {
-                        indice.push_back(i);
-                    }
+                    generate_vertice(draw_dest_rect, picture_source_rect);
                 }
             }
 
@@ -574,32 +542,7 @@ namespace DuiLib {
                 picture_source_rect.bottom = image.source.top + image.corner.top;
 
                 if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    TEXTURE_VERTEX right_top_vertice[] = {
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD right_top_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : right_top_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : right_top_indice) {
-                        indice.push_back(i);
-                    }
+                    generate_vertice(draw_dest_rect, picture_source_rect);
                 }
             }
 
@@ -616,32 +559,7 @@ namespace DuiLib {
                 picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
 
                 if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    TEXTURE_VERTEX left_vertice[] = {
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD left_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : left_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : left_indice) {
-                        indice.push_back(i);
-                    }
+                    generate_vertice(draw_dest_rect, picture_source_rect);
                 }
             }
 
@@ -658,32 +576,7 @@ namespace DuiLib {
                 picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
 
                 if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    TEXTURE_VERTEX right_vertice[] = {
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD right_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : right_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : right_indice) {
-                        indice.push_back(i);
-                    }
+                    generate_vertice(draw_dest_rect, picture_source_rect);
                 }
             }
 
@@ -700,32 +593,7 @@ namespace DuiLib {
                 picture_source_rect.bottom = image.source.bottom;
 
                 if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    TEXTURE_VERTEX left_bottom_vertice[] = {
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD left_bottom_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : left_bottom_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : left_bottom_indice) {
-                        indice.push_back(i);
-                    }
+                    generate_vertice(draw_dest_rect, picture_source_rect);
                 }
             }
 
@@ -742,32 +610,7 @@ namespace DuiLib {
                 picture_source_rect.bottom = image.source.bottom;
 
                 if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    TEXTURE_VERTEX bottom_vertice[] = {
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD bottom_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : bottom_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : bottom_indice) {
-                        indice.push_back(i);
-                    }
+                    generate_vertice(draw_dest_rect, picture_source_rect);
                 }
             }
 
@@ -784,32 +627,7 @@ namespace DuiLib {
                 picture_source_rect.bottom = image.source.bottom;
 
                 if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    TEXTURE_VERTEX right_bottom_vertice[] = {
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.top, image.height)), //left-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.top, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.top, image.height)), //right-top
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.right, width_), MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.right, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //right-bottom
-
-                        XMFLOAT3(MapScreenX(draw_dest_rect.left, width_),  MapScreenY(draw_dest_rect.bottom, height_), 0.0f),
-                        XMFLOAT2(MapTextureXY(picture_source_rect.left, image.width), MapTextureXY(picture_source_rect.bottom, image.height)), //left-bottom
-                    };
-
-                    WORD right_bottom_indice[] = {
-                        vertice.size(), vertice.size() + 1, vertice.size() + 2,
-                        vertice.size(), vertice.size() + 2, vertice.size() + 3
-                    };
-
-                    for (auto& v : right_bottom_vertice) {
-                        vertice.push_back(v);
-                    }
-
-                    for (auto& i : right_bottom_indice) {
-                        indice.push_back(i);
-                    }
+                    generate_vertice(draw_dest_rect, picture_source_rect);
                 }
             }
 
@@ -845,7 +663,7 @@ namespace DuiLib {
             hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
             Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.";);
 
-            unsigned int stride = sizeof(COLOR_VERTEX);
+            unsigned int stride = sizeof(TEXTURE_VERTEX);
             unsigned int offset = 0;
             d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
             d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
@@ -863,11 +681,17 @@ namespace DuiLib {
         
     }
 
-    void Direct3DRender::DrawText() {
+    void Direct3DRender::DrawText(const RECT& text_rect, const CDuiString& text, DWORD color) {
         
+        FreeTypeFont font(L"TODO", 16, true);
+        font.LoadFont();
+        ImageData image;
+        if (font.GetTextBitmap('X', image)) {
+            DrawImage(text_rect, text_rect, image);
+        }
     }
 
-    bool Direct3DRender::DrawBorder(const RECT& item_rect, const UINT border_size, const DWORD color) {
+    bool Direct3DRender::DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color) {
         if (::IsRectEmpty(&item_rect) || border_size <= 0) {
             return false;
         }
@@ -1089,7 +913,7 @@ namespace DuiLib {
         return true;
     }
 
-    bool Direct3DRender::DrawLine(const POINT& begin, const POINT& end, const DWORD dwColor) {
+    bool Direct3DRender::DrawLine(const POINT& begin, const POINT& end, DWORD dwColor) {
         if (!initialized_) {
             return false;
         }
@@ -1114,7 +938,7 @@ namespace DuiLib {
         return DrawColorVertex(vertice, indice, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
     }
 
-    bool Direct3DRender::DrawRect(const RECT& rect, const DWORD dwColor) {
+    bool Direct3DRender::DrawRect(const RECT& rect, DWORD dwColor) {
         XMFLOAT4 color(GETR(dwColor) / 255.0f, GETG(dwColor) / 255.0f, GETB(dwColor) / 255.0f, GETA(dwColor) / 255.0f);
         COLOR_VERTEX temp_v[] = {
             XMFLOAT3(MapScreenX(rect.left, width_),  MapScreenY(rect.top, height_), 0.0f), color, //left-top

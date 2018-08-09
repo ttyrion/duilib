@@ -115,47 +115,38 @@ namespace DuiLib {
         }
 
         UINT pixel = x * y;
-        BYTE* r = new BYTE[pixel]; memset(r, 0, pixel);
-        BYTE* g = new BYTE[pixel]; memset(g, 0, pixel);
-        BYTE* b = new BYTE[pixel]; memset(b, 0, pixel);
-        BYTE* a = new BYTE[pixel]; memset(a, 0, pixel);
+        image.width = x;
+        image.height = y;
+        image.r.resize(pixel);
+        image.g.resize(pixel);
+        image.b.resize(pixel);
+        image.a.resize(pixel);
+
         for (int i = 0; i < pixel; i++) {
-            a[i] = pImage[i * 4 + 3];
-            if (a[i] < 255) { //alpha透明
-                r[i] = (BYTE)(DWORD(pImage[i * 4]) * a[i] / 255);
-                b[i] = (BYTE)(DWORD(pImage[i * 4 + 1]) * a[i] / 255);
-                g[i] = (BYTE)(DWORD(pImage[i * 4 + 2]) * a[i] / 255);
+            image.a[i] = pImage[i * 4 + 3];
+            if ((BYTE)(image.a[i]) < 255) { //alpha透明
+                image.r[i] = (BYTE)(DWORD(pImage[i * 4]) * image.a[i] / 255);
+                image.g[i] = (BYTE)(DWORD(pImage[i * 4 + 1]) * image.a[i] / 255);
+                image.b[i] = (BYTE)(DWORD(pImage[i * 4 + 2]) * image.a[i] / 255);
                 //bAlphaChannel = true;
                 image.alpha_blend = true;
             }
             else {
-                r[i] = pImage[i * 4];
-                b[i] = pImage[i * 4 + 1];
-                g[i] = pImage[i * 4 + 2];
+                image.r[i] = pImage[i * 4];
+                image.g[i] = pImage[i * 4 + 1];
+                image.b[i] = pImage[i * 4 + 2];
             }
 
             //rgba == mask, 给不支持alpha通道的图片格式（如bmp）指定透明色
             if (*(DWORD*)(&pImage[i * 4]) == mask) {
-                r[i] = 0;
-                b[i] = 0;
-                g[i] = 0;
-                a[i] = 0;
+                image.r[i] = 0;
+                image.g[i] = 0;
+                image.b[i] = 0;
+                image.a[i] = 0;
                 //bAlphaChannel = true;
                 image.alpha_blend = true;
             }
         }
-
-        image.width = x;
-        image.height = y;
-        image.r.append((char*)r, pixel);
-        image.g.append((char*)g, pixel);
-        image.b.append((char*)b, pixel);
-        image.a.append((char*)a, pixel);
-
-        SAFE_DELETE(r);
-        SAFE_DELETE(g);
-        SAFE_DELETE(b);
-        SAFE_DELETE(a);
 
         if (!type.IsEmpty() || _tcscmp(type, RES_TYPE_COLOR) != 0) {
             stbi_image_free(pImage);

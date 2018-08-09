@@ -406,7 +406,7 @@ public:
     void DrawBkColor(const RECT&rect, DWORD color);
     bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image);
     void DrawStatusImage();
-    void DrawText();
+    void DrawText(const RECT& rcText, const CDuiString& text, const DWORD textColor);
     void DrawBorder(const RECT& rcItem, const UINT border_size, const DWORD color);
 
 private:

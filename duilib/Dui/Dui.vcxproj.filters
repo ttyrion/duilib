@@ -171,6 +171,9 @@
     <ClInclude Include="Core\D3DTypes.h">
       <Filter>direct3d</Filter>
     </ClInclude>
+    <ClInclude Include="Core\FreeTypeFont.h">
+      <Filter>direct3d</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -296,6 +299,9 @@
     <ClCompile Include="Core\Direct3DImage.cpp">
       <Filter>direct3d</Filter>
     </ClCompile>
+    <ClCompile Include="Core\FreeTypeFont.cpp">
+      <Filter>direct3d</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Utils\flash11.tlh">
@@ -303,16 +309,22 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Core\ColorPixel.hlsl">
+    <FxCompile Include="Core\shader\ColorPixel.hlsl">
       <Filter>direct3d\shader</Filter>
     </FxCompile>
-    <FxCompile Include="Core\ColorVertex.hlsl">
+    <FxCompile Include="Core\shader\ColorVertex.hlsl">
       <Filter>direct3d\shader</Filter>
     </FxCompile>
-    <FxCompile Include="Core\TexturePixel.hlsl">
+    <FxCompile Include="Core\shader\GrayTexturePixel.hlsl">
       <Filter>direct3d\shader</Filter>
     </FxCompile>
-    <FxCompile Include="Core\TextureVertex.hlsl">
+    <FxCompile Include="Core\shader\GrayTextureVertex.hlsl">
+      <Filter>direct3d\shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\shader\RGBATexturePixel.hlsl">
+      <Filter>direct3d\shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\shader\RGBATextureVertex.hlsl">
       <Filter>direct3d\shader</Filter>
     </FxCompile>
   </ItemGroup>
