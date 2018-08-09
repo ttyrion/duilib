@@ -31,6 +31,11 @@ LRESULT CMainUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_FILE_OPENED:
         result = OnOpenFile(uMsg, wParam, lParam, handled);
         break;
+    case WM_KEYUP:
+        if (wParam == VK_ESCAPE) {
+            ::PostQuitMessage(0);
+        }
+        break;
     }
     
 
