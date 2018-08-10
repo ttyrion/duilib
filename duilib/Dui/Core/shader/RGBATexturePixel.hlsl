@@ -6,15 +6,13 @@ struct PixelShader_INPUT
 };
 
 SamplerState sample_state;
-Texture2D tex_r;
-Texture2D tex_g;
-Texture2D tex_b;
-Texture2D tex_a;
+//Texture2D tex_r;
+//Texture2D tex_g;
+//Texture2D tex_b;
+//Texture2D tex_a;
+Texture2D texture_resource;
 float4 main(PixelShader_INPUT input) : SV_TARGET
 {
-    float r = tex_r.Sample(sample_state, input.tex).r;
-    float g = tex_g.Sample(sample_state, input.tex).r;
-    float b = tex_b.Sample(sample_state, input.tex).r;
-    float a = tex_a.Sample(sample_state, input.tex).r;
-    return float4(r, g, b, a);
+    float4 pixel = texture_resource.Sample(sample_state, input.tex);
+    return pixel;
 }

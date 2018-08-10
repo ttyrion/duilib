@@ -16,13 +16,16 @@ namespace DuiLib {
 
 
     Direct3DRender::~Direct3DRender() {
-        for (auto& plane : texture_planes_) {
-            ReleaseCOMInterface(plane);
-        }
+        //for (auto& plane : texture_planes_) {
+        //    ReleaseCOMInterface(plane);
+        //}
 
-        for (auto& view : texture_resource_views_) {
-            ReleaseCOMInterface(view);
-        }
+        //for (auto& view : texture_resource_views_) {
+        //    ReleaseCOMInterface(view);
+        //}
+
+        ReleaseCOMInterface(texture_resource_views_);
+        ReleaseCOMInterface(texture_planes_);
 
         ReleaseCOMInterface(d3d_swap_chain_);
         ReleaseCOMInterface(d3d_immediate_context_);
@@ -309,28 +312,45 @@ namespace DuiLib {
         return IASetTextureLayout("gtv.dll", "gtp.dll");
     }
 
-    bool Direct3DRender::CreateTextureResource(const UINT width, const UINT height) {
-        CD3D11_TEXTURE2D_DESC tex_desc(DXGI_FORMAT_R8_UNORM, width, height);
+    bool Direct3DRender::CreateTextureResource(const UINT width, const UINT height, IMAGE_FORMAT format) {
+        DXGI_FORMAT dx_format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; //default
+        if (format == IMAGE_FORMAT_GRAY) {
+            dx_format = DXGI_FORMAT_R8_UNORM;
+        }
+
+        CD3D11_TEXTURE2D_DESC tex_desc(dx_format, width, height);
         tex_desc.MipLevels = 1;
 
-        //UINT channels = sizeof(texture_planes_) / sizeof(ID3D11Texture2D*);
-        for (auto& plane : texture_planes_) {
-            HRESULT hr = d3d_device_->CreateTexture2D(&tex_desc, NULL, &plane);
-            if (FAILED(hr)) {
-                plane = NULL;
-                return false;
-            }
+        //for (auto& plane : texture_planes_) {
+        //    HRESULT hr = d3d_device_->CreateTexture2D(&tex_desc, NULL, &plane);
+        //    if (FAILED(hr)) {
+        //        plane = NULL;
+        //        return false;
+        //    }
+        //}
+
+        //CD3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc(D3D11_SRV_DIMENSION_TEXTURE2D);
+        //UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
+        //for (int i = 0; i < channels; ++i) {
+        //    //给每一个纹理资源都创建一个纹理视图，这样资源才能被GPU访问: 真正被绑定到渲染管线的是资源视图，而不是资源
+        //    HRESULT hr = d3d_device_->CreateShaderResourceView(texture_planes_[i], &resource_view_desc, &texture_resource_views_[i]);
+        //    if (FAILED(hr)) {
+        //        texture_resource_views_[i] = NULL;
+        //        return false;
+        //    }
+        //}
+
+        HRESULT hr = d3d_device_->CreateTexture2D(&tex_desc, NULL, &texture_planes_);
+        if (FAILED(hr)) {
+            texture_planes_ = NULL;
+            return false;
         }
 
         CD3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc(D3D11_SRV_DIMENSION_TEXTURE2D);
-        UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
-        for (int i = 0; i < channels; ++i) {
-            //给每一个纹理资源都创建一个纹理视图，这样资源才能被GPU访问: 真正被绑定到渲染管线的是资源视图，而不是资源
-            HRESULT hr = d3d_device_->CreateShaderResourceView(texture_planes_[i], &resource_view_desc, &texture_resource_views_[i]);
-            if (FAILED(hr)) {
-                texture_resource_views_[i] = NULL;
-                return false;
-            }
+        hr = d3d_device_->CreateShaderResourceView(texture_planes_, &resource_view_desc, &texture_resource_views_);
+        if (FAILED(hr)) {
+            texture_resource_views_ = NULL;
+            return false;
         }
 
         return true;
@@ -338,33 +358,38 @@ namespace DuiLib {
 
     bool Direct3DRender::UpdateTextureResource(const ImageData& image) {
         if (resource_width_ != image.width || resource_height_ != image.height) {
-            UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
-            for (int i = 0; i < channels; ++i) {
-                ReleaseCOMInterface(texture_planes_[i]);
-                ReleaseCOMInterface(texture_resource_views_[i]);
-            }
+            //UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
+            //for (int i = 0; i < channels; ++i) {
+            //    ReleaseCOMInterface(texture_planes_[i]);
+            //    ReleaseCOMInterface(texture_resource_views_[i]);
+            //}
 
-            if (!CreateTextureResource(image.width, image.height)) {
+            ReleaseCOMInterface(texture_planes_);
+            ReleaseCOMInterface(texture_resource_views_);
+
+            if (!CreateTextureResource(image.width, image.height, image.format)) {
                 return false;
             }
         }
 
-        UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
-        if (channels != 4) {
-            return false;
-        }
+        //UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
+        //if (channels != 4) {
+        //    return false;
+        //}
 
         /*纹理资源更新方式：
         1.创建纹理时选择D3D11_USAGE_DEFAULT（GPU可读写）,然后只用UpdateSubresource更新纹理。
         2.创建纹理时选择D3D11_USAGE_DYNAMIC（GPU-R,CPU-W）加上D3D11_CPU_ACCESS_WRITE, 然后用 Map->memcpy->Unmap方式。
         第一种方式，即UpdateSubresource效率更高。
         */
-        d3d_immediate_context_->UpdateSubresource(texture_planes_[0], 0, NULL, image.r.data(), image.width, 0);
-        d3d_immediate_context_->UpdateSubresource(texture_planes_[1], 0, NULL, image.g.data(), image.width, 0);
-        d3d_immediate_context_->UpdateSubresource(texture_planes_[2], 0, NULL, image.b.data(), image.width, 0);
-        d3d_immediate_context_->UpdateSubresource(texture_planes_[3], 0, NULL, image.a.data(), image.width, 0);
+        //d3d_immediate_context_->UpdateSubresource(texture_planes_[0], 0, NULL, image.r.data(), image.width, 0);
+        //d3d_immediate_context_->UpdateSubresource(texture_planes_[1], 0, NULL, image.g.data(), image.width, 0);
+        //d3d_immediate_context_->UpdateSubresource(texture_planes_[2], 0, NULL, image.b.data(), image.width, 0);
+        //d3d_immediate_context_->UpdateSubresource(texture_planes_[3], 0, NULL, image.a.data(), image.width, 0);
 
-        d3d_immediate_context_->PSSetShaderResources(0, channels, texture_resource_views_);
+        //mind that the Source Row Pitch is in bytes : SrcRowPitch = [size of one element in bytes] * [number of elements in one row]
+        d3d_immediate_context_->UpdateSubresource(texture_planes_, 0, NULL, image.buffer.data(), image.width * image.format, 0);
+        d3d_immediate_context_->PSSetShaderResources(0, 1, &texture_resource_views_);
 
         return true;
     }
@@ -432,9 +457,20 @@ namespace DuiLib {
             return false;
         }
         
-        if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
-            return false;
+        switch (image.format) {
+        case IMAGE_FORMAT_GRAY: {
+            if (!IASetTextureLayout("gtv.dll", "gtp.dll")) {
+                return false;
+            }
+            break;
         }
+        default:  //IMAGE_FORMAT_RGBA
+            if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
+                return false;
+            }
+            break;
+        }
+
         UpdateTextureResource(image);
 
         if (image.alpha_blend || image.fade < 255) {

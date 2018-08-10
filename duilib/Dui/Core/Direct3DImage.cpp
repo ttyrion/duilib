@@ -105,8 +105,10 @@ namespace DuiLib {
 
         LPBYTE pImage = NULL;
         int x = 1, y = 1, n;
+        const UINT channels = 4;
         if (!type.IsEmpty() || _tcscmp(type, RES_TYPE_COLOR) != 0) {
-            pImage = stbi_load_from_memory(pData, dwSize, &x, &y, &n, 4);
+            //stb_image.h: if you set desired_channels to 4, you will always get RGBA output
+            pImage = stbi_load_from_memory(pData, dwSize, &x, &y, &n, channels);
             delete[] pData;
             //failed parsing the image data
             if (!pImage) {
@@ -114,39 +116,37 @@ namespace DuiLib {
             }
         }
 
-        UINT pixel = x * y;
+        UINT pixels = x * y;
         image.width = x;
         image.height = y;
-        image.r.resize(pixel);
-        image.g.resize(pixel);
-        image.b.resize(pixel);
-        image.a.resize(pixel);
+        image.buffer.clear();
+        image.buffer.append((char*)pImage, pixels * channels);
 
-        for (int i = 0; i < pixel; i++) {
-            image.a[i] = pImage[i * 4 + 3];
-            if ((BYTE)(image.a[i]) < 255) { //alpha透明
-                image.r[i] = (BYTE)(DWORD(pImage[i * 4]) * image.a[i] / 255);
-                image.g[i] = (BYTE)(DWORD(pImage[i * 4 + 1]) * image.a[i] / 255);
-                image.b[i] = (BYTE)(DWORD(pImage[i * 4 + 2]) * image.a[i] / 255);
-                //bAlphaChannel = true;
-                image.alpha_blend = true;
-            }
-            else {
-                image.r[i] = pImage[i * 4];
-                image.g[i] = pImage[i * 4 + 1];
-                image.b[i] = pImage[i * 4 + 2];
-            }
+        //for (int i = 0; i < pixel; i++) {
+        //    image.a[i] = pImage[i * 4 + 3];
+        //    if ((BYTE)(image.a[i]) < 255) { //alpha透明
+        //        image.r[i] = (BYTE)(DWORD(pImage[i * 4]) * image.a[i] / 255);
+        //        image.g[i] = (BYTE)(DWORD(pImage[i * 4 + 1]) * image.a[i] / 255);
+        //        image.b[i] = (BYTE)(DWORD(pImage[i * 4 + 2]) * image.a[i] / 255);
+        //        //bAlphaChannel = true;
+        //        image.alpha_blend = true;
+        //    }
+        //    else {
+        //        image.r[i] = pImage[i * 4];
+        //        image.g[i] = pImage[i * 4 + 1];
+        //        image.b[i] = pImage[i * 4 + 2];
+        //    }
 
-            //rgba == mask, 给不支持alpha通道的图片格式（如bmp）指定透明色
-            if (*(DWORD*)(&pImage[i * 4]) == mask) {
-                image.r[i] = 0;
-                image.g[i] = 0;
-                image.b[i] = 0;
-                image.a[i] = 0;
-                //bAlphaChannel = true;
-                image.alpha_blend = true;
-            }
-        }
+        //    //rgba == mask, 给不支持alpha通道的图片格式（如bmp）指定透明色
+        //    if (*(DWORD*)(&pImage[i * 4]) == mask) {
+        //        image.r[i] = 0;
+        //        image.g[i] = 0;
+        //        image.b[i] = 0;
+        //        image.a[i] = 0;
+        //        //bAlphaChannel = true;
+        //        image.alpha_blend = true;
+        //    }
+        //}
 
         if (!type.IsEmpty() || _tcscmp(type, RES_TYPE_COLOR) != 0) {
             stbi_image_free(pImage);

@@ -173,38 +173,16 @@ namespace DuiLib {
 
         switch (face_->glyph->bitmap.pixel_mode) {
         case FT_PIXEL_MODE_BGRA: {
-                image.width = face_->glyph->bitmap.width;
-                image.height = face_->glyph->bitmap.rows;
-                for (int i = 0; i < image.width * image.height; ++i) {
-                    image.b.append((char*)(face_->glyph->bitmap.buffer + i), 1);
-                    image.g.append((char*)(face_->glyph->bitmap.buffer + i + 1), 1);
-                    image.r.append((char*)(face_->glyph->bitmap.buffer + i + 2), 1);
-                    image.a.append((char*)(face_->glyph->bitmap.buffer + i + 3), 1);
-                }
+                
             }
             break;
         case FT_PIXEL_MODE_GRAY: {
+                image.format = IMAGE_FORMAT_GRAY;
                 image.width = face_->glyph->bitmap.width;
                 image.height = face_->glyph->bitmap.rows;
                 image.source.right = image.width;
                 image.source.bottom = image.height;
-                std::string gray;
-                for (int i = 0; i < image.width * image.height; ++i) {
-                    image.b.append((char*)(face_->glyph->bitmap.buffer + i), 1);
-                    image.g.append((char*)(face_->glyph->bitmap.buffer + i), 1);
-                    image.r.append((char*)(face_->glyph->bitmap.buffer + i), 1);
-                    image.a.push_back(0xff);
-                    gray.push_back(face_->glyph->bitmap.buffer[i]);
-                    gray.push_back(face_->glyph->bitmap.buffer[i]);
-                    gray.push_back(face_->glyph->bitmap.buffer[i]);
-                }
-
-                std::ofstream ofs;
-                ofs.open("F:\\gray.bin", std::ios::binary);
-                if (ofs.is_open())
-                {
-                    ofs.write(gray.c_str(), gray.length());
-                }
+                image.buffer.append((char*)face_->glyph->bitmap.buffer, image.width * image.height);
             }
             break;
         default:

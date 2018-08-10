@@ -53,7 +53,7 @@ namespace DuiLib {
         bool IASetRGBATextureLayout();
         bool IASetGrayTextureLayout();
         
-        bool CreateTextureResource(const UINT width, const UINT height);
+        bool CreateTextureResource(const UINT width, const UINT height, IMAGE_FORMAT format);
         bool UpdateTextureResource(const ImageData& image);
         bool SetLinearSamplerState();
 
@@ -85,8 +85,12 @@ namespace DuiLib {
         //控制着色器
         ID3D11SamplerState* sampler_state_ = NULL;
         //用四层文理资源分别访问图片的r,g,b,a 数据，相应地，着色器中也要定义四个纹理资源
-        ID3D11Texture2D* texture_planes_[4] = { NULL };
-        ID3D11ShaderResourceView* texture_resource_views_[4] = { NULL };
+        //ID3D11Texture2D* texture_planes_[4] = { NULL };
+        //ID3D11ShaderResourceView* texture_resource_views_[4] = { NULL };
+        //改用一个纹理资源，处理多种图片格式
+        ID3D11Texture2D* texture_planes_ = NULL;
+        ID3D11ShaderResourceView* texture_resource_views_ = NULL;
+
         ID3D11SamplerState* linear_sampler_state_ = NULL;
         UINT resource_width_ = 0;
         UINT resource_height_ = 0;

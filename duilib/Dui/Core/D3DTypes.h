@@ -5,40 +5,41 @@
 #define SAFE_NDELETE(p) { if(p) delete[] p; p = NULL;}
 
 namespace DuiLib {
+    enum IMAGE_FORMAT {
+        IMAGE_FORMAT_GRAY = 1,
+        IMAGE_FORMAT_RGBA = 4   
+    };
+
     typedef struct {
         UINT width = 0;
         UINT height = 0;
+        IMAGE_FORMAT format = IMAGE_FORMAT_RGBA;
+        UINT fade = 255;
+        DWORD mask = 0;
         RECT dest = { 0 };
         RECT source = { 0 };
         //九宫格绘制，控制图片source区域：四条边x或y方向拉伸、四角不拉伸、中间区域x和y方向同时拉伸
-        RECT corner = { 0 };
-        DWORD mask = 0;
-        UINT fade = 255;
+        RECT corner = { 0 };        
+        std::string buffer;
+        CDuiString sDrawString;  //bkimage config
+        CDuiString sImageName;   //bkimage file    
         bool alpha_blend = false;
-        CDuiString sDrawString;  //bkimage
-        CDuiString sImageName;   //bkimage file
-        std::string r;
-        std::string g;
-        std::string b;
-        std::string a;        
 
         bool empty() const {
-            return width == 0 || height == 0 || r.empty() || g.empty() || b.empty() || a.empty();
+            return width == 0 || height == 0 || buffer.empty();
         }
 
         void clear() {
             width = height = 0;
+            format = IMAGE_FORMAT_RGBA;
+            fade = 255;
+            mask = 0;
             dest.left = dest.top = dest.right = dest.bottom = 0;
             source.left = source.top = source.right = source.bottom = 0;
             corner.left = corner.top = corner.right = corner.bottom = 0;
-            mask = 0;
-            fade = 255;
+            buffer.clear();            
             sDrawString.Empty();
-            sImageName.Empty();
-            r.clear();
-            g.clear();
-            b.clear();
-            a.clear();
+            sImageName.Empty();            
         }
     } ImageData;
 
