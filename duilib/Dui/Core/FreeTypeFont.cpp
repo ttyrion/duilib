@@ -53,7 +53,7 @@ namespace DuiLib {
     }
 
     bool FreeTypeFont::LoadFont() {
-        std::wstring file = system_fonts_dir_ + L"\\arial.ttf";
+        std::wstring file = system_fonts_dir_ + L"\\msyh.ttc";
 
         if (!::PathFileExists(file.c_str())) {
             return false;
@@ -139,54 +139,72 @@ namespace DuiLib {
         return true;
     }
 
-    std::string FreeTypeFont::GetTextBitmap(UINT char_utf32_code) {
+    bool FreeTypeFont::GetTextBitmap(UINT char_utf32_code, ImageData& image) {
         if (!face_) {
-            return "";
+            return false;
         }
 
         FT_UInt glyph_index = FT_Get_Char_Index(face_, char_utf32_code);
         FT_Error err = FT_Load_Glyph(face_, glyph_index, FT_LOAD_DEFAULT);
         if (err) {
-            return "";
+            return false;
         }
 
         if (face_->glyph->format != FT_GLYPH_FORMAT_BITMAP) {
             err = FT_Render_Glyph(face_->glyph, FT_RENDER_MODE_NORMAL);
-            if (err) {
-                return "";
+            if (err || face_->glyph->format != FT_GLYPH_FORMAT_BITMAP) {
+                return false;
             }
-        }
-
-
-    }
-
-    bool FreeTypeFont::GetTextBitmap(WCHAR c, ImageData& image) {
-        if (!face_) {
-            return false;
-        }
-
-        //FT_LOAD_RENDER does the same work with FT_Render_Glyph(...FT_RENDER_MODE_NORMAL)
-        FT_Error err = FT_Load_Char(face_, c, FT_LOAD_RENDER);
-        if (err) {
-            return false;
-        }
+        }        
 
         switch (face_->glyph->bitmap.pixel_mode) {
         case FT_PIXEL_MODE_BGRA: {
-                
-            }
-            break;
-        case FT_PIXEL_MODE_GRAY: {
-                image.format = IMAGE_FORMAT_GRAY;
-                image.width = face_->glyph->bitmap.width;
-                image.height = face_->glyph->bitmap.rows;
-                image.source.right = image.width;
-                image.source.bottom = image.height;
-                image.buffer.append((char*)face_->glyph->bitmap.buffer, image.width * image.height);
-            }
-            break;
-        default:
-            break;
+
         }
+                                 break;
+        case FT_PIXEL_MODE_GRAY: {
+            image.format = IMAGE_FORMAT_GRAY;
+            image.width = face_->glyph->bitmap.width;
+            image.height = face_->glyph->bitmap.rows;
+            image.source.right = image.width;
+            image.source.bottom = image.height;
+            image.buffer.append((char*)face_->glyph->bitmap.buffer, image.width * image.height);
+        }
+                                 break;
+        default:
+            return false;
+        }
+
+        return true;
     }
+
+    //bool FreeTypeFont::GetTextBitmap(WCHAR c, ImageData& image) {
+    //    if (!face_) {
+    //        return false;
+    //    }
+
+    //    //FT_LOAD_RENDER does the same work with FT_Render_Glyph(...FT_RENDER_MODE_NORMAL)
+    //    FT_Error err = FT_Load_Char(face_, c, FT_LOAD_RENDER);
+    //    if (err) {
+    //        return false;
+    //    }
+
+    //    switch (face_->glyph->bitmap.pixel_mode) {
+    //    case FT_PIXEL_MODE_BGRA: {
+    //            
+    //        }
+    //        break;
+    //    case FT_PIXEL_MODE_GRAY: {
+    //            image.format = IMAGE_FORMAT_GRAY;
+    //            image.width = face_->glyph->bitmap.width;
+    //            image.height = face_->glyph->bitmap.rows;
+    //            image.source.right = image.width;
+    //            image.source.bottom = image.height;
+    //            image.buffer.append((char*)face_->glyph->bitmap.buffer, image.width * image.height);
+    //        }
+    //        break;
+    //    default:
+    //        return false;
+    //    }
+    //}
 }

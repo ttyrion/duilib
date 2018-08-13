@@ -719,10 +719,11 @@ namespace DuiLib {
 
     void Direct3DRender::DrawText(const RECT& text_rect, const CDuiString& text, DWORD color) {
         
-        FreeTypeFont font(L"TODO", 16, true);
+        FreeTypeFont font(L"TODO", 36, true);
         font.LoadFont();
         ImageData image;
-        if (font.GetTextBitmap('X', image)) {
+
+        if (font.GetTextBitmap(0x751A, image)) {
             DrawImage(text_rect, text_rect, image);
         }
     }

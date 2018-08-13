@@ -1151,6 +1151,7 @@ bool CControlUI::Paint(HDC hDC, const RECT& rcPaint, CControlUI* pStopControl)
 bool CControlUI::Paint(const RECT& rcPaint, CControlUI* pStopControl) {
     if (pStopControl == this) return false;
     //不在paint区域的控件，跳过绘制
+    //另外，m_rcPaint会保存绘制区域
     if (!::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem)) return true;
     if (OnPaint) {
         if (!OnPaint(this)) return true;
@@ -1250,7 +1251,7 @@ void CControlUI::PaintBkColor()
         //else if (m_dwBackColor >= 0xFF000000) CRenderEngine::DrawColor(hDC, m_rcPaint, GetAdjustColor(m_dwBackColor));
         //else CRenderEngine::DrawColor(hDC, m_rcItem, GetAdjustColor(m_dwBackColor));
 
-        m_pManager->DrawBkColor(m_rcItem, m_dwBackColor);
+        m_pManager->DrawBkColor(m_rcPaint, m_dwBackColor);
     }
 }
 

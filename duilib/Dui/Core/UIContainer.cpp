@@ -624,6 +624,7 @@ namespace DuiLib
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		if( m_items.IsEmpty() ) return;
 
+        //计算后的容器区域
 		rc = m_rcItem;
 		rc.left += m_rcInset.left;
 		rc.top += m_rcInset.top;
@@ -656,6 +657,8 @@ namespace DuiLib
 				if( sz.cy < pControl->GetMinHeight() ) sz.cy = pControl->GetMinHeight();
 				if( sz.cy > pControl->GetMaxHeight() ) sz.cy = pControl->GetMaxHeight();
 				RECT rcCtrl = { rc.left, rc.top, rc.left + sz.cx, rc.top + sz.cy };
+
+                //也就是说对于Container来说，子控件都是互相重叠，没有布局
 				pControl->SetPos(rcCtrl, false);
 			}
 		}
@@ -883,6 +886,8 @@ namespace DuiLib
                     if (pControl == pStopControl) return false;
                     if (!pControl->IsVisible()) continue;
                     if (!::IntersectRect(&rcTemp, &rcPaint, &pControl->GetPos())) continue;
+
+                    //rcPaint和rc不想交，则只需绘制float控件
                     if (pControl->IsFloat()) {
                         if (!::IntersectRect(&rcTemp, &m_rcItem, &pControl->GetPos())) continue;
                         if (!pControl->Paint(rcPaint, pStopControl)) return false;

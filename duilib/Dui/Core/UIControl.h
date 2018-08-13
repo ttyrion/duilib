@@ -209,8 +209,8 @@ protected:
 	bool m_bAsyncNotify;
     RECT m_rcItem;
     RECT m_rcPadding;
-    SIZE m_cXY;
-    SIZE m_cxyFixed;
+    SIZE m_cXY;  //fixed x/y
+    SIZE m_cxyFixed; //fixed h/w
     SIZE m_cxyMin;
     SIZE m_cxyMax;
     bool m_bVisible;

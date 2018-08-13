@@ -28,6 +28,7 @@ namespace DuiLib
 
 	void CHorizontalLayoutUI::SetPos(RECT rc, bool bNeedInvalidate)
 	{
+        //调用的是CControlUI::SetPos, 而不是CContainerUI::SetPos
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		rc = m_rcItem;
 

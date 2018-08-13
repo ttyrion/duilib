@@ -6,6 +6,7 @@
     #include <freetype/ftglyph.h>
 */
 #include FT_FREETYPE_H
+#include FT_OUTLINE_H
 
 namespace DuiLib {
     /*
@@ -21,8 +22,8 @@ namespace DuiLib {
         static void UnInit();
 
         bool LoadFont();
-        std::string GetTextBitmap(UINT char_utf32_code);
-        bool GetTextBitmap(WCHAR c, ImageData& image);
+        bool GetTextBitmap(UINT char_utf32_code, ImageData& image);
+        //bool GetTextBitmap(WCHAR c, ImageData& image);
 
     private:
         static std::wstring system_fonts_dir_;

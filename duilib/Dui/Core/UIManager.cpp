@@ -3695,6 +3695,8 @@ bool CPaintManagerUI::DoD3DPaint() {
                         rcRoot.right -= m_rcLayeredInset.right;
                         rcRoot.bottom -= m_rcLayeredInset.bottom;
                     }
+                    
+                    //SetPos和Paint()一样，都是virtual函数，root的控件的setpos和paint会递归触发子控件的setpost和paint
                     m_pRoot->SetPos(rcRoot, true);
                 }
                 else {
