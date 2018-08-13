@@ -215,6 +215,7 @@ copy $(DuilibRoot)\duilib\$(Configuration)\rtp.dll $(DuilibRoot)\Projects\DuiIma
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="UIlib.h" />
+    <ClInclude Include="UITypedef.h" />
     <ClInclude Include="Utils\downloadmgr.h" />
     <ClInclude Include="Utils\FlashEventHandler.h" />
     <ClInclude Include="Utils\stb_image.h" />

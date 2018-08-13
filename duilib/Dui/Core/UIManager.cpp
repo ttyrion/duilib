@@ -3776,8 +3776,8 @@ void CPaintManagerUI::DrawStatusImage() {
     
 }
 
-void CPaintManagerUI::DrawText(const RECT& rcText, const CDuiString& text, const DWORD textColor) {
-    return d3dengine_.DrawText(rcText, text, textColor);
+void CPaintManagerUI::DrawText(const RECT& rcText, const CDuiString& text, UINT font_index, DWORD color, UINT text_style) {
+    return d3dengine_.DrawText(rcText, text, *(GetFontInfo(font_index)), color, text_style);
 }
 
 void CPaintManagerUI::DrawBorder(const RECT& rcItem, const UINT border_size, const DWORD color) {

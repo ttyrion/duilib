@@ -717,14 +717,60 @@ namespace DuiLib {
         
     }
 
-    void Direct3DRender::DrawText(const RECT& text_rect, const CDuiString& text, DWORD color) {
+    void Direct3DRender::DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style) {
         
-        FreeTypeFont font(L"TODO", 36, true);
+        FreeTypeFont font(L"TODO", font_info.iSize, true);
         font.LoadFont();
         ImageData image;
 
+        int text_width = 0;
+        int text_height = 0;
+        int top_padding = 0;
+        int left_padding = 0;
+        if (text_style & DT_VCENTER) {
+            top_padding = (text_rect.bottom - text_rect.top - text_height) / 2;
+        }
+
+        if (text_style & DT_TOP) {
+            top_padding = 0;
+        }
+
+        if (text_style & DT_BOTTOM) {
+            top_padding = text_rect.bottom - text_rect.top - text_height;
+        }       
+
+        if (text_style & DT_CENTER) {
+            left_padding = (text_rect.right - text_rect.left - text_width) / 2;
+        }
+
+        if (text_style & DT_CENTER) {
+            left_padding = (text_rect.right - text_rect.left - text_width) / 2;
+        }
+
+        if (text_style & DT_LEFT) {
+            left_padding = 0;
+        }
+
+        if (text_style & DT_RIGHT) {
+            left_padding = text_rect.right - text_rect.left - text_width;
+        }
+
+        if (top_padding < 0) {
+            top_padding = 0;
+        }
+
+        if (left_padding < 0) {
+            left_padding = 0;
+        }
+
+        RECT final_text_rect = text_rect;
+        final_text_rect.top += top_padding;
+        final_text_rect.left += left_padding;
+
         if (font.GetTextBitmap(0x751A, image)) {
-            DrawImage(text_rect, text_rect, image);
+            final_text_rect.right = final_text_rect.left + font_info.iSize;
+            final_text_rect.bottom = final_text_rect.top + font_info.iSize;
+            DrawImage(final_text_rect, text_rect, image);
         }
     }
 

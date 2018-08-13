@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Direct3DRender.h"
+#include "UITypedef.h"
 
 namespace DuiLib {
 /////////////////////////////////////////////////////////////////////////////////////
@@ -88,16 +89,6 @@ enum EVENTTYPE_UI
 /////////////////////////////////////////////////////////////////////////////////////
 //
 
-typedef struct DUILIB_API tagTFontInfo
-{
-    HFONT hFont;
-    CDuiString sFontName;
-    int iSize;
-    bool bBold;
-    bool bUnderline;
-    bool bItalic;
-    TEXTMETRIC tm;
-} TFontInfo;
 
 typedef struct DUILIB_API tagTImageInfo
 {
@@ -406,7 +397,7 @@ public:
     void DrawBkColor(const RECT&rect, DWORD color);
     bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image);
     void DrawStatusImage();
-    void DrawText(const RECT& rcText, const CDuiString& text, const DWORD textColor);
+    void DrawText(const RECT& rcText, const CDuiString& text, UINT font_index, DWORD color, UINT text_style);
     void DrawBorder(const RECT& rcItem, const UINT border_size, const DWORD color);
 
 private:

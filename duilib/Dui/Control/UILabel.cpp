@@ -263,6 +263,70 @@ namespace DuiLib
 				m_uTextStyle &= ~(DT_LEFT | DT_CENTER);
 				m_uTextStyle |= DT_RIGHT;
 			}
+
+            if (_tcsstr(pstrValue, _T("left-top")) != NULL) {
+                m_uTextStyle &= ~(DT_BOTTOM | DT_VCENTER);
+                m_uTextStyle |= DT_TOP;
+
+                m_uTextStyle &= ~(DT_CENTER | DT_RIGHT);
+                m_uTextStyle |= DT_LEFT;
+            }
+
+            if (_tcsstr(pstrValue, _T("right-top")) != NULL) {
+                m_uTextStyle &= ~(DT_BOTTOM | DT_VCENTER);
+                m_uTextStyle |= DT_TOP;
+
+                m_uTextStyle &= ~(DT_LEFT | DT_CENTER);
+                m_uTextStyle |= DT_RIGHT;
+            }
+
+            if (_tcsstr(pstrValue, _T("center-top")) != NULL) {
+                m_uTextStyle &= ~(DT_BOTTOM | DT_VCENTER);
+                m_uTextStyle |= DT_TOP;
+
+                m_uTextStyle &= ~(DT_LEFT | DT_RIGHT);
+                m_uTextStyle |= DT_CENTER;
+            }
+
+            if (_tcsstr(pstrValue, _T("left-bottom")) != NULL) {
+                m_uTextStyle &= ~(DT_TOP | DT_VCENTER);
+                m_uTextStyle |= DT_BOTTOM;
+
+                m_uTextStyle &= ~(DT_CENTER | DT_RIGHT);
+                m_uTextStyle |= DT_LEFT;
+            }
+
+            if (_tcsstr(pstrValue, _T("right-bottom")) != NULL) {
+                m_uTextStyle &= ~(DT_TOP | DT_VCENTER);
+                m_uTextStyle |= DT_BOTTOM;
+
+                m_uTextStyle &= ~(DT_LEFT | DT_CENTER);
+                m_uTextStyle |= DT_RIGHT;
+            }
+
+            if (_tcsstr(pstrValue, _T("center-bottom")) != NULL) {
+                m_uTextStyle &= ~(DT_TOP | DT_VCENTER);
+                m_uTextStyle |= DT_BOTTOM;
+
+                m_uTextStyle &= ~(DT_LEFT | DT_RIGHT);
+                m_uTextStyle |= DT_CENTER;
+            }
+
+            if (_tcsstr(pstrValue, _T("left-center")) != NULL) {
+                m_uTextStyle &= ~(DT_CENTER | DT_RIGHT);
+                m_uTextStyle |= DT_LEFT;
+
+                m_uTextStyle &= ~(DT_TOP | DT_BOTTOM);
+                m_uTextStyle |= DT_VCENTER;
+            }
+
+            if (_tcsstr(pstrValue, _T("right-center")) != NULL) {
+                m_uTextStyle &= ~(DT_LEFT | DT_CENTER);
+                m_uTextStyle |= DT_RIGHT;
+
+                m_uTextStyle &= ~(DT_TOP | DT_BOTTOM);
+                m_uTextStyle |= DT_VCENTER;
+            }
 		}
 		else if (_tcscmp(pstrName, _T("valign")) == 0)
 		{
@@ -520,10 +584,10 @@ namespace DuiLib
             //}
 
             if (IsEnabled()) {
-                m_pManager->DrawText(rc, m_sText, m_dwTextColor);
+                m_pManager->DrawText(rc, m_sText, m_iFont, m_dwTextColor, m_uTextStyle);
             }
             else {
-                m_pManager->DrawText(rc, m_sText, m_dwDisabledTextColor);
+                m_pManager->DrawText(rc, m_sText, m_iFont, m_dwDisabledTextColor, m_uTextStyle);
             }
         }
         else

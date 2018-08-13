@@ -433,7 +433,8 @@ CControlUI* CDialogBuilder::_Parse(CMarkupNode* pRoot, CControlUI* pParent, CPai
         if( pManager ) {
             pControl->SetManager(NULL, NULL, false);
         }
-        // if条件控制此函数返回第一个子节点对应的控件
+
+        // if条件控制此函数返回第一个控件子节点对应的控件
         if( pReturn == NULL ) pReturn = pControl;
     }
     return pReturn;

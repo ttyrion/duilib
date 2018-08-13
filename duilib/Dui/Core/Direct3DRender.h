@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include "D3DTypes.h"
+#include "UITypedef.h"
 
 #if defined(DEBUG) || defined(_DEBUG)
 #define Direct3DFailedDebugMsgBox(hr, r, msg) if(FAILED(hr)) { \
@@ -44,7 +45,7 @@ namespace DuiLib {
         bool FillColor(const RECT& rect, DWORD color);
         bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image);
         void DrawStatusImage();
-        void DrawText(const RECT& text_rect, const CDuiString& text, DWORD color);
+        void DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         bool DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color);
 
     private:
