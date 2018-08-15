@@ -24,10 +24,10 @@ LRESULT CMenuUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_CREATE:
         OnCreate(uMsg, wParam, lParam, result);
         break;
-    }
     default:
         break;
     }
+    
 
     if (handled) {
         return result;
