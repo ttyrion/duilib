@@ -117,10 +117,10 @@ namespace DuiLib {
         }
 
         UINT pixels = x * y;
-        image.width = x;
-        image.height = y;
-        image.buffer.clear();
-        image.buffer.append((char*)pImage, pixels * channels);
+        image.bitmap.width = x;
+        image.bitmap.height = y;
+        image.bitmap.buffer.clear();
+        image.bitmap.buffer.append((char*)pImage, pixels * channels);
 
         //for (int i = 0; i < pixel; i++) {
         //    image.a[i] = pImage[i * 4 + 3];

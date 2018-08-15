@@ -356,8 +356,8 @@ namespace DuiLib {
         return true;
     }
 
-    bool Direct3DRender::UpdateTextureResource(const ImageData& image) {
-        if (resource_width_ != image.width || resource_height_ != image.height) {
+    bool Direct3DRender::UpdateTextureResource(const DuiBitmap& bitmap) {
+        if (resource_width_ != bitmap.width || resource_height_ != bitmap.height) {
             //UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
             //for (int i = 0; i < channels; ++i) {
             //    ReleaseCOMInterface(texture_planes_[i]);
@@ -367,7 +367,7 @@ namespace DuiLib {
             ReleaseCOMInterface(texture_planes_);
             ReleaseCOMInterface(texture_resource_views_);
 
-            if (!CreateTextureResource(image.width, image.height, image.format)) {
+            if (!CreateTextureResource(bitmap.width, bitmap.height, bitmap.format)) {
                 return false;
             }
         }
@@ -382,13 +382,13 @@ namespace DuiLib {
         2.创建纹理时选择D3D11_USAGE_DYNAMIC（GPU-R,CPU-W）加上D3D11_CPU_ACCESS_WRITE, 然后用 Map->memcpy->Unmap方式。
         第一种方式，即UpdateSubresource效率更高。
         */
-        //d3d_immediate_context_->UpdateSubresource(texture_planes_[0], 0, NULL, image.r.data(), image.width, 0);
-        //d3d_immediate_context_->UpdateSubresource(texture_planes_[1], 0, NULL, image.g.data(), image.width, 0);
-        //d3d_immediate_context_->UpdateSubresource(texture_planes_[2], 0, NULL, image.b.data(), image.width, 0);
-        //d3d_immediate_context_->UpdateSubresource(texture_planes_[3], 0, NULL, image.a.data(), image.width, 0);
+        //d3d_immediate_context_->UpdateSubresource(texture_planes_[0], 0, NULL, image.r.data(), image.bitmap.width, 0);
+        //d3d_immediate_context_->UpdateSubresource(texture_planes_[1], 0, NULL, image.g.data(), image.bitmap.width, 0);
+        //d3d_immediate_context_->UpdateSubresource(texture_planes_[2], 0, NULL, image.b.data(), image.bitmap.width, 0);
+        //d3d_immediate_context_->UpdateSubresource(texture_planes_[3], 0, NULL, image.a.data(), image.bitmap.width, 0);
 
         //mind that the Source Row Pitch is in bytes : SrcRowPitch = [size of one element in bytes] * [number of elements in one row]
-        d3d_immediate_context_->UpdateSubresource(texture_planes_, 0, NULL, image.buffer.data(), image.width * image.format, 0);
+        d3d_immediate_context_->UpdateSubresource(texture_planes_, 0, NULL, bitmap.buffer.data(), bitmap.width * bitmap.format, 0);
         d3d_immediate_context_->PSSetShaderResources(0, 1, &texture_resource_views_);
 
         return true;
@@ -457,7 +457,7 @@ namespace DuiLib {
             return false;
         }
         
-        switch (image.format) {
+        switch (image.bitmap.format) {
         case IMAGE_FORMAT_GRAY: {
             if (!IASetTextureLayout("gtv.dll", "gtp.dll")) {
                 return false;
@@ -471,7 +471,7 @@ namespace DuiLib {
             break;
         }
 
-        UpdateTextureResource(image);
+        UpdateTextureResource(image.bitmap);
 
         if (image.alpha_blend || image.fade < 255) {
             //TODO: alpha blend
@@ -485,16 +485,16 @@ namespace DuiLib {
             auto generate_vertice = [this, &vertice, &indice, &image](const RECT& dest, const RECT& source) {
                 TEXTURE_VERTEX temp_vertice[] = {
                     XMFLOAT3(MapScreenX(dest.left, width_),  MapScreenY(dest.top, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(source.left, image.width), MapTextureXY(source.top, image.height)), //left-top
+                    XMFLOAT2(MapTextureXY(source.left, image.bitmap.width), MapTextureXY(source.top, image.bitmap.height)), //left-top
 
                     XMFLOAT3(MapScreenX(dest.right, width_), MapScreenY(dest.top, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(source.right, image.width), MapTextureXY(source.top, image.height)), //right-top
+                    XMFLOAT2(MapTextureXY(source.right, image.bitmap.width), MapTextureXY(source.top, image.bitmap.height)), //right-top
 
                     XMFLOAT3(MapScreenX(dest.right, width_), MapScreenY(dest.bottom, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(source.right, image.width), MapTextureXY(source.bottom, image.height)), //right-bottom
+                    XMFLOAT2(MapTextureXY(source.right, image.bitmap.width), MapTextureXY(source.bottom, image.bitmap.height)), //right-bottom
 
                     XMFLOAT3(MapScreenX(dest.left, width_),  MapScreenY(dest.bottom, height_), 0.0f),
-                    XMFLOAT2(MapTextureXY(source.left, image.width), MapTextureXY(source.bottom, image.height)), //left-bottom
+                    XMFLOAT2(MapTextureXY(source.left, image.bitmap.width), MapTextureXY(source.bottom, image.bitmap.height)), //left-bottom
                 };
 
                 WORD temp_indice[] = {
@@ -718,59 +718,207 @@ namespace DuiLib {
     }
 
     void Direct3DRender::DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style) {
-        
-        FreeTypeFont font(L"TODO", font_info.iSize, true);
-        font.LoadFont();
-        ImageData image;
-
-        int text_width = 0;
-        int text_height = 0;
-        int top_padding = 0;
-        int left_padding = 0;
-        if (text_style & DT_VCENTER) {
-            top_padding = (text_rect.bottom - text_rect.top - text_height) / 2;
+        if (!initialized_) {
+            return;
         }
 
-        if (text_style & DT_TOP) {
-            top_padding = 0;
-        }
+        assert(d3d_device_);
+        assert(d3d_immediate_context_);
 
-        if (text_style & DT_BOTTOM) {
-            top_padding = text_rect.bottom - text_rect.top - text_height;
-        }       
-
-        if (text_style & DT_CENTER) {
-            left_padding = (text_rect.right - text_rect.left - text_width) / 2;
-        }
-
-        if (text_style & DT_CENTER) {
-            left_padding = (text_rect.right - text_rect.left - text_width) / 2;
-        }
-
-        if (text_style & DT_LEFT) {
-            left_padding = 0;
-        }
-
-        if (text_style & DT_RIGHT) {
-            left_padding = text_rect.right - text_rect.left - text_width;
-        }
-
-        if (top_padding < 0) {
-            top_padding = 0;
-        }
-
-        if (left_padding < 0) {
-            left_padding = 0;
-        }
-
+        UINT last_advance = 0;
         RECT final_text_rect = text_rect;
-        final_text_rect.top += top_padding;
-        final_text_rect.left += left_padding;
+        UINT test_code = 0x751A;
 
-        if (font.GetTextBitmap(0x751A, image)) {
-            final_text_rect.right = final_text_rect.left + font_info.iSize;
-            final_text_rect.bottom = final_text_rect.top + font_info.iSize;
-            DrawImage(final_text_rect, text_rect, image);
+        UINT index = 0;
+        std::vector<TEXTURE_VERTEX> vertice;
+        std::vector<WORD> indice;
+
+        LPCTSTR str = text.GetData();
+        std::string s = CW2AEX<>(str, CP_UTF8);
+        const char* p = s.c_str();
+
+        auto utf16_utf32 = [](const WORD* in, DWORD& utf32) -> UINT {
+            if (!in || *in == 0) {
+                utf32 = 0;
+                return 0;
+            }
+
+            WORD w1 = in[0];
+            UINT units = 0; //字符占用的utf16单元数目
+            if (w1 >= 0xD800 && w1 <= 0xDFFF) {
+                if (w1 < 0xDC00) {
+                    WORD w2 = in[1];
+                    if (w2 >= 0xDC00 && w2 <= 0xDFFF) {
+                        utf32 = (w2 & 0x03FF) + (((w1 & 0x03FF) + 0x40) << 10);
+                        units = 2;
+                    }
+                }
+                else {
+                    //invalid in
+                    utf32 = 0;
+                    units = 0;
+                }
+            }
+            else {
+                utf32 = w1;
+                units = 1;
+            }
+
+            return units;
+        };
+
+        auto generate_vertice = [this, &vertice, &indice](const RECT& dest) {
+            TEXTURE_VERTEX temp_vertice[] = {
+                XMFLOAT3(MapScreenX(dest.left, width_),  MapScreenY(dest.top, height_), 0.0f), XMFLOAT2(0.0f, 0.0f), //left-top
+                XMFLOAT3(MapScreenX(dest.right, width_), MapScreenY(dest.top, height_), 0.0f), XMFLOAT2(1.0f, 0.0f), //right-top
+                XMFLOAT3(MapScreenX(dest.right, width_), MapScreenY(dest.bottom, height_), 0.0f), XMFLOAT2(1.0f, 1.0f), //right-bottom
+                XMFLOAT3(MapScreenX(dest.left, width_),  MapScreenY(dest.bottom, height_), 0.0f), XMFLOAT2(0.0f, 1.0f) //left-bottom
+            };
+
+            WORD temp_indice[] = {
+                vertice.size(), vertice.size() + 1, vertice.size() + 2,
+                vertice.size(), vertice.size() + 2, vertice.size() + 3
+            };
+
+            for (auto& v : temp_vertice) {
+                vertice.push_back(v);
+            }
+
+            for (auto& in : temp_indice) {
+                indice.push_back(in);
+            }
+        };
+
+        auto draw_vertice = [this, &vertice, &indice]() {
+            D3D11_BUFFER_DESC vertex_buffer_desc;
+            vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+            vertex_buffer_desc.ByteWidth = sizeof(TEXTURE_VERTEX) * vertice.size();  //size of the buffer
+            vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
+            vertex_buffer_desc.CPUAccessFlags = 0;
+            vertex_buffer_desc.MiscFlags = 0;
+            vertex_buffer_desc.StructureByteStride = 0;
+            //or we can use Map and UnMap
+            D3D11_SUBRESOURCE_DATA vertex_data;
+            vertex_data.pSysMem = vertice.data();
+            vertex_data.SysMemPitch = 0;
+            vertex_data.SysMemSlicePitch = 0;
+            ID3D11Buffer *vertex_buffer = NULL;
+            HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
+            Direct3DFailedDebugMsgBox(hr, , L"create color vertex buffer failed.";);
+
+
+            D3D11_BUFFER_DESC index_buffer_desc;
+            index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+            index_buffer_desc.ByteWidth = sizeof(WORD) * indice.size();
+            index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+            index_buffer_desc.CPUAccessFlags = 0;
+            index_buffer_desc.MiscFlags = 0;
+            index_buffer_desc.StructureByteStride = 0;
+            D3D11_SUBRESOURCE_DATA index_data;
+            index_data.pSysMem = indice.data();
+            index_data.SysMemPitch = 0;
+            index_data.SysMemSlicePitch = 0;
+            ID3D11Buffer* index_buffer = NULL;
+            hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
+            Direct3DFailedDebugMsgBox(hr, , L"create color index buffer failed.";);
+
+            unsigned int stride = sizeof(TEXTURE_VERTEX);
+            unsigned int offset = 0;
+            d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
+            d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
+            d3d_immediate_context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+            d3d_immediate_context_->DrawIndexed(indice.size(), 0, 0);
+
+            ReleaseCOMInterface(vertex_buffer);
+        };
+
+        LPCTSTR ptr = text.GetData();
+        UINT units = 0;
+        for (; *ptr!=0; ptr += units) {
+            DWORD utf32_code = 0;
+            units = utf16_utf32((WORD*)ptr, utf32_code);
+            if (units == 0) {
+                break;
+            }
+
+            FreeTypeFont font(L"TODO", font_info.iSize, true);
+            font.LoadFont();
+            TextData data;
+
+            if (font.GetTextData(utf32_code, data)) {
+                final_text_rect.left += last_advance;
+                int text_width = data.metrics.width;
+                int text_height = data.metrics.height;
+                int top_padding = 0;
+                int left_padding = 0;
+                if (text_style & DT_VCENTER) {
+                    top_padding = (final_text_rect.bottom - final_text_rect.top - text_height) / 2;
+                }
+
+                if (text_style & DT_TOP) {
+                    top_padding = 0;
+                }
+
+                if (text_style & DT_BOTTOM) {
+                    top_padding = final_text_rect.bottom - final_text_rect.top - text_height;
+                }
+
+                if (text_style & DT_CENTER) {
+                    //暂时简单处理，假设每个字符宽度一样
+                    left_padding = (final_text_rect.right - final_text_rect.left - text_width * text.GetLength()) / 2;
+                }
+
+                if (text_style & DT_LEFT) {
+                    left_padding = 0;
+                }
+
+                if (text_style & DT_RIGHT) {
+                    left_padding = final_text_rect.right - final_text_rect.left - text_width * text.GetLength();
+                }
+
+                if (top_padding < 0) {
+                    top_padding = 0;
+                }
+
+                if (left_padding < 0) {
+                    left_padding = 0;
+                }
+
+                final_text_rect.top += top_padding;
+                final_text_rect.left += left_padding;
+                final_text_rect.right = final_text_rect.left + text_width;
+                final_text_rect.bottom = final_text_rect.top + text_height;
+
+                if (final_text_rect.right - final_text_rect.left < data.metrics.width  + data.metrics.bearingX) {
+                    break;
+                }
+
+                switch (data.bitmap.format) {
+                case IMAGE_FORMAT_GRAY: {
+                    if (!IASetTextureLayout("gtv.dll", "gtp.dll")) {
+                        return;
+                    }
+                    break;
+                }
+                default:  //IMAGE_FORMAT_RGBA
+                    if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
+                        return;
+                    }
+                    break;
+                }
+
+                UpdateTextureResource(data.bitmap);
+                generate_vertice(final_text_rect);                
+                draw_vertice();
+                vertice.clear();
+                indice.clear();
+                last_advance = data.metrics.advance;
+            }
+        }
+
+        if (vertice.size() <= 0) {
+            return;
         }
     }
 
@@ -921,13 +1069,13 @@ namespace DuiLib {
 
             Direct3DImage::LoadImage(image.sImageName, L"", image.mask, image);
             if (image.source.left == 0 && image.source.right == 0 && image.source.top == 0 && image.source.bottom == 0) {
-                image.source.right = image.width;
-                image.source.bottom = image.height;
+                image.source.right = image.bitmap.width;
+                image.source.bottom = image.bitmap.height;
             }
         }
 
-        image.source.right > image.width ? image.source.right = image.width : NULL;
-        image.source.bottom > image.height ? image.source.bottom = image.height : NULL;
+        image.source.right > image.bitmap.width ? image.source.right = image.bitmap.width : NULL;
+        image.source.bottom > image.bitmap.height ? image.source.bottom = image.bitmap.height : NULL;
 
         return true;
     }

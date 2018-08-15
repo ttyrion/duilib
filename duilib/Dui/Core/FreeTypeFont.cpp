@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "FreeTypeFont.h"
 #include <fstream>
+#include FT_OUTLINE_H
+#include FT_GLYPH_H
 
 #define FT_POS_COEF  (1.0/64.0)
 
@@ -139,7 +141,7 @@ namespace DuiLib {
         return true;
     }
 
-    bool FreeTypeFont::GetTextBitmap(UINT char_utf32_code, ImageData& image) {
+    bool FreeTypeFont::GetTextData(UINT char_utf32_code, TextData& data) {
         if (!face_) {
             return false;
         }
@@ -155,7 +157,26 @@ namespace DuiLib {
             if (err || face_->glyph->format != FT_GLYPH_FORMAT_BITMAP) {
                 return false;
             }
-        }        
+        }
+
+        //FT_Glyph glyph;
+        //err = FT_Get_Glyph(face_->glyph, &glyph);
+        //if (err) {
+        //    return false;
+        //}
+
+        //auto ret = [&glyph]( bool val) {
+        //    FT_Done_Glyph(glyph);
+        //    return val;
+        //};
+
+        data.bitmap.width = face_->glyph->bitmap.width;
+        data.bitmap.height = face_->glyph->bitmap.rows;
+        data.metrics.width = face_->glyph->metrics.width / 64;
+        data.metrics.height = face_->glyph->metrics.height / 64;
+        data.metrics.bearingX = face_->glyph->metrics.horiBearingX / 64;
+        data.metrics.bearingY = face_->glyph->metrics.horiBearingY / 64;
+        data.metrics.advance = face_->glyph->metrics.horiAdvance / 64;
 
         switch (face_->glyph->bitmap.pixel_mode) {
         case FT_PIXEL_MODE_BGRA: {
@@ -163,12 +184,10 @@ namespace DuiLib {
         }
                                  break;
         case FT_PIXEL_MODE_GRAY: {
-            image.format = IMAGE_FORMAT_GRAY;
-            image.width = face_->glyph->bitmap.width;
-            image.height = face_->glyph->bitmap.rows;
-            image.source.right = image.width;
-            image.source.bottom = image.height;
-            image.buffer.append((char*)face_->glyph->bitmap.buffer, image.width * image.height);
+            data.bitmap.format = IMAGE_FORMAT_GRAY;            
+            //image.source.right = image.bitmap.width;
+            //image.source.bottom = image.bitmap.height;
+            data.bitmap.buffer.append((char*)face_->glyph->bitmap.buffer, data.bitmap.width * data.bitmap.height);
         }
                                  break;
         default:

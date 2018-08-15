@@ -55,7 +55,7 @@ namespace DuiLib {
         bool IASetGrayTextureLayout();
         
         bool CreateTextureResource(const UINT width, const UINT height, IMAGE_FORMAT format);
-        bool UpdateTextureResource(const ImageData& image);
+        bool UpdateTextureResource(const DuiBitmap& bitmap);
         bool SetLinearSamplerState();
 
         bool LoadImage(ImageData& image);

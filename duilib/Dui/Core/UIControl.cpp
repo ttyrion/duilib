@@ -231,8 +231,8 @@ void CControlUI::SetBkImage(LPCTSTR pStrImage)
             DrawImage(back_image_data_);
             if (m_bFloat && m_cxyFixed.cx == 0 && m_cxyFixed.cy == 0 && !back_image_data_.empty()) {
                 //设置m_cxyFixed为image尺寸
-                m_cxyFixed.cx = back_image_data_.width;
-                m_cxyFixed.cy = back_image_data_.height;
+                m_cxyFixed.cx = back_image_data_.bitmap.width;
+                m_cxyFixed.cy = back_image_data_.bitmap.height;
             }
         }
         break;

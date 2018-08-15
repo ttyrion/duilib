@@ -6,7 +6,7 @@
     #include <freetype/ftglyph.h>
 */
 #include FT_FREETYPE_H
-#include FT_OUTLINE_H
+
 
 namespace DuiLib {
     /*
@@ -22,7 +22,7 @@ namespace DuiLib {
         static void UnInit();
 
         bool LoadFont();
-        bool GetTextBitmap(UINT char_utf32_code, ImageData& image);
+        bool GetTextData(UINT char_utf32_code, TextData& data);
         //bool GetTextBitmap(WCHAR c, ImageData& image);
 
     private:
