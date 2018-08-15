@@ -833,6 +833,8 @@ namespace DuiLib {
             ReleaseCOMInterface(vertex_buffer);
         };
 
+        FreeTypeFont font(L"TODO", font_info.iSize, true);
+        font.LoadFont();
         LPCTSTR ptr = text.GetData();
         UINT units = 0;
         for (; *ptr!=0; ptr += units) {
@@ -841,11 +843,8 @@ namespace DuiLib {
             if (units == 0) {
                 break;
             }
-
-            FreeTypeFont font(L"TODO", font_info.iSize, true);
-            font.LoadFont();
+            
             TextData data;
-
             if (font.GetTextData(utf32_code, data)) {
                 final_text_rect.left += last_advance;
                 int text_width = data.metrics.width;
@@ -890,7 +889,7 @@ namespace DuiLib {
                 final_text_rect.right = final_text_rect.left + text_width;
                 final_text_rect.bottom = final_text_rect.top + text_height;
 
-                if (final_text_rect.right - final_text_rect.left < data.metrics.width  + data.metrics.bearingX) {
+                if (final_text_rect.right > text_rect.right) {
                     break;
                 }
 
