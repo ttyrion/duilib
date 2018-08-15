@@ -1192,10 +1192,14 @@ namespace DuiLib {
     }   
 
     std::string Direct3DRender::LoadShader(const std::string& cso_file) {
+        if (!shaders_[cso_file].empty()) {
+            return shaders_[cso_file];
+        }
+
         std::ifstream ifs;
         std::string shader;
         ifs.open(cso_file, std::ios::binary | std::ios::in);
-        if (ifs.is_open()) {
+        if (ifs) {
             ifs.seekg(0, std::ios_base::end);
             int size = (int)ifs.tellg();
             ifs.seekg(0, std::ios_base::beg);
@@ -1205,6 +1209,7 @@ namespace DuiLib {
             ifs.close();
         }
 
+        shaders_[cso_file] = shader;
         return shader;
     }
 }

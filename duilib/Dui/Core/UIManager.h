@@ -190,7 +190,7 @@ public:
     ~CPaintManagerUI();
 
 public:
-    void Init(HWND hWnd, LPCTSTR pstrName = NULL, DrawMode mode = DrawMode_GDI);
+    void Init(HWND hWnd, LPCTSTR pstrName = NULL, DrawMode mode = DrawMode_Direct3D_11);
 	bool IsUpdateNeeded() const;
     void NeedUpdate();
 	void Invalidate();

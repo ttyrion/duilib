@@ -25,6 +25,9 @@ LRESULT CMenuUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         OnCreate(uMsg, wParam, lParam, result);
         break;
     }
+    default:
+        break;
+    }
 
     if (handled) {
         return result;
@@ -62,7 +65,7 @@ void CMenuUI::Notify(TNotifyUI& msg) {
             info.lpstrFileTitle = NULL;
             info.nMaxFileTitle = 0;
             info.lpstrInitialDir = NULL;
-            info.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+            info.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
             if (GetOpenFileName(&info)) {
                 std::wstring *file = new std::wstring(info.lpstrFile);

@@ -3754,6 +3754,7 @@ bool CPaintManagerUI::DoD3DPaint() {
     }
     
     d3dengine_.PresentScene();
+    SetPainting(false);
     ::ValidateRect(m_hWndPaint, NULL);
 
     //::EndPaint(m_hWndPaint, &ps);

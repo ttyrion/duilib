@@ -70,6 +70,8 @@ namespace DuiLib {
         UINT height_ = 0;
         UINT x4_msaa_uality_ = 0;
 
+        std::map<std::string, std::string> shaders_;
+
         ID3D11Device* d3d_device_ = NULL;
         ID3D11DeviceContext* d3d_immediate_context_ = NULL;
         IDXGISwapChain* d3d_swap_chain_ = NULL;
