@@ -71,16 +71,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(DuilibRoot)/duilib;$(DuilibRoot)/duilib/Dui;$(IncludePath)</IncludePath>
-    <LibraryPath>$(DuilibRoot)/duilib/$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SOLUTION_ROOT)/Duilib/Dui;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SOLUTION_ROOT)/Duilib/$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(DuilibRoot);$(DuilibRoot)/duilib/Dui;$(IncludePath)</IncludePath>
-    <LibraryPath>$(DuilibRoot)/duilib/$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SOLUTION_ROOT)/Duilib/Dui;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SOLUTION_ROOT)/Duilib/$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -92,7 +92,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(DuilibRoot);</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SOLUTION_ROOT)/Duilib;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -122,7 +122,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(DuilibRoot);</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SOLUTION_ROOT)/Duilib;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

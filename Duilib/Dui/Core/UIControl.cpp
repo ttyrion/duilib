@@ -235,7 +235,7 @@ void CControlUI::SetBkImage(LPCTSTR pStrImage)
                 m_cxyFixed.cy = back_image_data_.bitmap.height;
             }
         }
-        break;
+        return;
     default:
         break;
     }

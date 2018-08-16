@@ -3651,7 +3651,7 @@ bool CPaintManagerUI::DoGDIPaint() {
 bool CPaintManagerUI::DoD3DPaint() {
     //PAINTSTRUCT ps = { 0 };
     //::BeginPaint(m_hWndPaint, &ps);
-
+    
     if (m_pRoot == NULL) {
         RECT rect = { 0 };
         ::GetWindowRect(m_hWndPaint, &rect);
@@ -3683,6 +3683,8 @@ bool CPaintManagerUI::DoD3DPaint() {
             SetNextTabControl();
         }
 
+        PAINTSTRUCT ps = { 0 };
+        ::BeginPaint(m_hWndPaint, &ps);
         SetPainting(true);
         if (m_bUpdateNeeded) {
             m_bUpdateNeeded = false;
@@ -3751,13 +3753,16 @@ bool CPaintManagerUI::DoD3DPaint() {
         if (m_bLayered) {
             //TODO:
         }
+
+        ::EndPaint(m_hWndPaint, &ps);
+        SetPainting(false);
+        if (m_bUpdateNeeded) {
+            Invalidate();
+        }
     }
     
-    d3dengine_.PresentScene();
-    SetPainting(false);
-    ::ValidateRect(m_hWndPaint, NULL);
+    d3dengine_.PresentScene();   
 
-    //::EndPaint(m_hWndPaint, &ps);
     return true;
 }
 
