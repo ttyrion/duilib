@@ -1158,8 +1158,9 @@ namespace DuiLib {
                 L"zh-CN",
                 &text_format
             );
-            Direct3DFailedDebugMsgBox(hr, , L"DWrite create text format failed.");            
-            text_format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            Direct3DFailedDebugMsgBox(hr, , L"DWrite create text format failed.");
+            text_format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);  //宽度不够时，字符串也不分割成多行
+            text_format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
             hr = text_format->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
             text_formats_[font] = text_format;
         }
@@ -1181,7 +1182,7 @@ namespace DuiLib {
         text_render_target_->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)); //transparency background
         D2D1_COLOR_F font_color = D2D1::ColorF(GETR(color) / 255.0f, GETG(color) / 255.0f, GETB(color) / 255.0f, GETA(color) / 255.0f);
         text_brush_->SetColor(font_color);
-        D2D1_RECT_F rect = D2D1::RectF(text_rect.left, text_rect.top, text_rect.right - text_rect.left, text_rect.bottom - text_rect.top);
+        D2D1_RECT_F rect = D2D1::RectF(text_rect.left, text_rect.top, text_rect.right, text_rect.bottom);
         std::wstring render_text = CW2WEX<>(text.GetData(), CP_UTF8);
         text_render_target_->DrawText(
             render_text.c_str(),
