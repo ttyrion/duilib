@@ -1,5 +1,15 @@
 #pragma once
+
+#pragma comment (lib, "D3D10_1.lib")
+#pragma comment (lib, "DXGI.lib")
+#pragma comment (lib, "D2D1.lib")
+#pragma comment (lib, "dwrite.lib")
+
 #include <d3d11.h>
+#include <D3D10_1.h>
+#include <DXGI.h>
+#include <D2D1.h>
+#include <dwrite.h>
 #include <sstream>
 #include <vector>
 #include "D3DTypes.h"
@@ -40,15 +50,21 @@ namespace DuiLib {
         void ReleaseDirect3D();
 
         void ResizeRender(const RECT& render_rect);
-        void PresentScene();
+        void BeginDraw();
+        void EndDraw();
 
         bool FillColor(const RECT& rect, DWORD color);
         bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image);
         void DrawStatusImage();
         void DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
+        void DrawText2D(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         bool DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color);
 
     private:
+        bool CreateSharedTexture(const UINT width, const UINT height);
+        //initialize Direct2D, Direct3D 10_1, and DirectWrite
+        bool Init2DTextRender(IDXGIAdapter1 *adapter, const UINT width, const UINT height);
+        void Init2DScreenTexture();
         bool IASetColorLayout();
         bool IASetTextureLayout(const std::string& vertex_shader_file, const std::string& pixel_shader_file);
         bool IASetRGBATextureLayout();
@@ -86,7 +102,9 @@ namespace DuiLib {
         D3D11_VIEWPORT d3d_screen_viewport_;
 
         //控制着色器
-        ID3D11SamplerState* sampler_state_ = NULL;
+        //ID3D11SamplerState* sampler_state_ = NULL;
+        ID3D11BlendState* text_blend_state_ = NULL;
+
         //用四层文理资源分别访问图片的r,g,b,a 数据，相应地，着色器中也要定义四个纹理资源
         //ID3D11Texture2D* texture_planes_[4] = { NULL };
         //ID3D11ShaderResourceView* texture_resource_views_[4] = { NULL };
@@ -97,5 +115,20 @@ namespace DuiLib {
         ID3D11SamplerState* linear_sampler_state_ = NULL;
         UINT resource_width_ = 0;
         UINT resource_height_ = 0;
+
+
+        //Render Text        
+        ID3D10Device1* d3d10_1_device_;
+        IDXGIKeyedMutex* keyed_mutex_11_;
+        IDXGIKeyedMutex* keyed_mutex_10_;
+        ID2D1RenderTarget* text_render_target_;
+        ID2D1SolidColorBrush* text_brush_;
+        ID3D11Texture2D* shared_texture_;
+        ID3D11ShaderResourceView* shared_texture_resource_view_;
+        ID3D11Buffer* text_plane_vbuffer_;
+        ID3D11Buffer* text_plane_ibuffer_;        
+        IDWriteFactory* dwrite_factory_;
+        //IDWriteTextFormat* text_format;
+        std::map<D2DFont, IDWriteTextFormat*, D2DFontLess> text_formats_;
     };
 } // namespace DuiLib

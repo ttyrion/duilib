@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <DirectXMath/Inc/DirectXMath.h>
 
 #define SAFE_DELETE(p) { if(p) delete p; p = NULL;}
@@ -11,7 +12,7 @@ namespace DuiLib {
         IMAGE_FORMAT_RGBA = 4   
     };
 
-    typedef struct DuiBitmap {
+    struct DuiBitmap {
         UINT width = 0;
         UINT height = 0;
         IMAGE_FORMAT format = IMAGE_FORMAT_None;
@@ -28,7 +29,7 @@ namespace DuiLib {
         }
     };
 
-    typedef struct {
+    struct ImageData {
         bool alpha_blend = false;
         UINT fade = 255;
         DWORD mask = 0;
@@ -54,9 +55,9 @@ namespace DuiLib {
             sDrawString.Empty();
             sImageName.Empty();            
         }
-    } ImageData;
+    };
 
-    typedef struct TextMetrics{
+    struct TextMetrics{
         signed long width = 0;
         signed long height = 0;
         signed long bearingX = 0;
@@ -64,19 +65,36 @@ namespace DuiLib {
         signed long advance = 0;
     };
 
-    typedef struct {
+    struct D2DFont {
+        D2DFont(const std::wstring& name, const UINT font_size) {
+            this->name = name;
+            this->font_size = font_size;
+        };
+
+        std::wstring name;
+        UINT font_size = 0;
+    };
+
+    class D2DFontLess {
+    public:
+        bool operator() (const D2DFont& lhs, const D2DFont& rhs) const {
+            return lhs.name < rhs.name && lhs.font_size < rhs.font_size;
+        }
+    };
+
+    struct TextData {
         TextMetrics metrics;
         DuiBitmap bitmap;
-    } TextData;
+    };
 
-    typedef struct {
+    struct COLOR_VERTEX {
         DirectX::XMFLOAT3    pos;           // vertex untransformed position
         DirectX::XMFLOAT4    color;
-    } COLOR_VERTEX;
+    };
 
-    typedef struct {
+    struct TEXTURE_VERTEX {
         DirectX::XMFLOAT3    pos;
         DirectX::XMFLOAT2    tex;          //texture coordinates
-    } TEXTURE_VERTEX;
+    };
 
 } // namespace DuiLib

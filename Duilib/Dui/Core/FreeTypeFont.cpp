@@ -63,7 +63,12 @@ namespace DuiLib {
 
         std::string font_file = CW2AEX<>(file.c_str(), CP_UTF8);
         //A font file may contain multiple faces
+        if (face_) {
+            FT_Done_Face(face_);
+            face_ = nullptr;
+        }
         FT_Error err = FT_New_Face(lib_, font_file.c_str(), 0, &face_);
+        
         if (err == FT_Err_Unknown_File_Format) {
             //font file accessed successfully, but it has an unknown format
             return false;
@@ -137,6 +142,7 @@ namespace DuiLib {
         //    descender_ = face_->size->metrics.descender * float(FT_POS_COEF);
         //    font_height_ = face_->size->metrics.height * float(FT_POS_COEF);
         //}
+
 
         return true;
     }

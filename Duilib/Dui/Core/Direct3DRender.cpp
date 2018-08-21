@@ -23,13 +23,172 @@ namespace DuiLib {
         //for (auto& view : texture_resource_views_) {
         //    ReleaseCOMInterface(view);
         //}
+        
+        for (auto format: text_formats_) {
+            ReleaseCOMInterface(format.second);
+        }
 
+        ReleaseCOMInterface(dwrite_factory_);
+        ReleaseCOMInterface(text_plane_ibuffer_);
+        ReleaseCOMInterface(text_plane_vbuffer_);
+        ReleaseCOMInterface(shared_texture_);
+        ReleaseCOMInterface(shared_texture_resource_view_);
+        ReleaseCOMInterface(text_brush_);
+        ReleaseCOMInterface(text_render_target_);
+        ReleaseCOMInterface(keyed_mutex_10_);
+        ReleaseCOMInterface(keyed_mutex_11_);
+        ReleaseCOMInterface(d3d10_1_device_);
+
+        
+        ReleaseCOMInterface(linear_sampler_state_);
+        ReleaseCOMInterface(text_blend_state_);
         ReleaseCOMInterface(texture_resource_views_);
         ReleaseCOMInterface(texture_planes_);
 
         ReleaseCOMInterface(d3d_swap_chain_);
         ReleaseCOMInterface(d3d_immediate_context_);
         ReleaseCOMInterface(d3d_device_);
+    }
+
+    bool Direct3DRender::CreateSharedTexture(const UINT width, const UINT height) {
+        //If the size of the window changed, the backbuffer of the swapchain should be changed then.
+        //AS a result, all the related object should be changed: shared texture, key mutex, direct2d render target and brush.
+
+        ReleaseCOMInterface(keyed_mutex_11_);
+        ReleaseCOMInterface(keyed_mutex_10_);
+        ReleaseCOMInterface(text_render_target_);
+        ReleaseCOMInterface(shared_texture_resource_view_);
+        ReleaseCOMInterface(shared_texture_);
+
+        //Create Shared Texture that Direct3D 10.1 will render on
+        D3D11_TEXTURE2D_DESC shared_tex_desc;
+        ::ZeroMemory(&shared_tex_desc, sizeof(shared_tex_desc));
+        
+        shared_tex_desc.Width = width;
+        shared_tex_desc.Height = height;
+        shared_tex_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        shared_tex_desc.MipLevels = 1;
+        shared_tex_desc.ArraySize = 1;
+        shared_tex_desc.SampleDesc.Count = 1;
+        shared_tex_desc.Usage = D3D11_USAGE_DEFAULT;
+        shared_tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+        //This flag makes sure that the shared texture would support the IDXGIKeyedMutex interface
+        shared_tex_desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+        HRESULT hr = d3d_device_->CreateTexture2D(&shared_tex_desc, NULL, &shared_texture_);
+        Direct3DFailedDebugMsgBox(hr, false, L"create shared tex failed.");
+
+        // Get the keyed mutex object for the shared texture (for D3D 11)
+        // keyed_mutex_11_ will hold a pointer to this shared texture.
+        shared_texture_->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&keyed_mutex_11_);
+        // Get the shared handle needed to open the shared texture in D3D10.1
+        IDXGIResource *shared_resource = NULL;
+        HANDLE shared_handle = NULL;
+        shared_texture_->QueryInterface(__uuidof(IDXGIResource), (void**)&shared_resource);
+        //We can open the shared resource (IDXGIResource object) to the D3D 11 shared texture from D3D 10.1
+        hr = shared_resource->GetSharedHandle(&shared_handle);
+        ReleaseCOMInterface(shared_resource);
+        Direct3DFailedDebugMsgBox(hr, false, L"get shared handle for 10.1 failed.");
+
+        // Get the keyed mutex object for the shared texture (for D3D 10.1)
+        // Actually, D3D 10.1 will render to this surface, which is connected to a D3D 11 texture(the shared texture)
+        IDXGISurface1 *shared_surface10 = NULL;
+        hr = d3d10_1_device_->OpenSharedResource(shared_handle, __uuidof(IDXGISurface1), (void**)(&shared_surface10));
+        Direct3DFailedDebugMsgBox(hr, false, L"open shared resource failed.");
+        shared_surface10->QueryInterface(__uuidof(IDXGIKeyedMutex), (void**)&keyed_mutex_10_);
+
+        //Next to set the D2D render target to the shared surface
+
+        ID2D1Factory *factory = NULL;
+        hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), (void**)&factory);
+        Direct3DFailedDebugMsgBox(hr, false, L"create d2d factory failed.");
+
+        D2D1_RENDER_TARGET_PROPERTIES render_target_properties;
+        ::ZeroMemory(&render_target_properties, sizeof(render_target_properties));
+        render_target_properties.type = D2D1_RENDER_TARGET_TYPE_HARDWARE;
+        render_target_properties.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED);
+        hr = factory->CreateDxgiSurfaceRenderTarget(shared_surface10, &render_target_properties, &text_render_target_);
+        Direct3DFailedDebugMsgBox(hr, false, L"create dxgi surface render target failed.");
+        hr = text_render_target_->CreateSolidColorBrush(D2D1::ColorF(1.0f, 1.0f, 0.0f, 1.0f), &text_brush_);
+        Direct3DFailedDebugMsgBox(hr, false, L"create solid color brush failed.");
+
+        ReleaseCOMInterface(factory);
+        ReleaseCOMInterface(shared_surface10);
+
+        //we can use this resource view to texture a square which overlays our scene
+        hr = d3d_device_->CreateShaderResourceView(shared_texture_, NULL, &shared_texture_resource_view_);
+
+        return SUCCEEDED(hr);
+    }
+
+    bool Direct3DRender::Init2DTextRender(IDXGIAdapter1 *adapter, const UINT width, const UINT height) {
+        assert(d3d_device_);
+
+        UINT create_device_flags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+        create_device_flags |= D3D10_CREATE_DEVICE_DEBUG;
+        create_device_flags |= D3D10_CREATE_DEVICE_BGRA_SUPPORT;
+#endif
+
+        HRESULT hr = D3D10CreateDevice1(adapter, D3D10_DRIVER_TYPE_HARDWARE, NULL, create_device_flags, D3D10_FEATURE_LEVEL_9_3, D3D10_1_SDK_VERSION, &d3d10_1_device_);
+        Direct3DFailedDebugMsgBox(hr, false, L"D3D10CreateDevice1 Failed.");
+        //temp size
+        if (!CreateSharedTexture(1, 1)) {
+            return false;
+        }
+
+        //Actually we won't draw anything to the screen directly with the D3D 10.1 device, it's to prevent warnings
+        d3d10_1_device_->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+        Init2DScreenTexture();
+
+        return true;
+    }
+
+    void Direct3DRender::Init2DScreenTexture() {
+        assert(d3d_device_);
+
+        TEXTURE_VERTEX vertice[] =
+        {
+            XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f),
+            XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f),
+            XMFLOAT3(1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f),
+            XMFLOAT3(1.0f, -1.0f, 0.0f),XMFLOAT2(1.0f, 1.0f)
+        };
+
+        WORD indices[] = {
+            1, 2, 3,
+            1, 3, 0,
+        };
+
+        D3D11_BUFFER_DESC vertex_buffer_desc;
+        ::ZeroMemory(&vertex_buffer_desc, sizeof(D3D11_BUFFER_DESC));
+        vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        vertex_buffer_desc.ByteWidth = sizeof(vertice);  //size of the buffer
+        vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
+        vertex_buffer_desc.CPUAccessFlags = 0;
+        vertex_buffer_desc.MiscFlags = 0;
+        D3D11_SUBRESOURCE_DATA vertex_data;
+        vertex_data.pSysMem = vertice;
+        vertex_data.SysMemPitch = 0;
+        vertex_data.SysMemSlicePitch = 0;
+        ID3D11Buffer *vertex_buffer = NULL;
+        HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &text_plane_vbuffer_);
+        Direct3DFailedDebugMsgBox(hr, , L"create 2D vertex buffer failed.");
+
+        D3D11_BUFFER_DESC index_buffer_desc;
+        ::ZeroMemory(&index_buffer_desc, sizeof(D3D11_BUFFER_DESC));
+        index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        index_buffer_desc.ByteWidth = sizeof(indices);
+        index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        index_buffer_desc.CPUAccessFlags = 0;
+        index_buffer_desc.MiscFlags = 0;
+        D3D11_SUBRESOURCE_DATA index_data;
+        index_data.pSysMem = indices;
+        index_data.SysMemPitch = 0;
+        index_data.SysMemSlicePitch = 0;
+        ID3D11Buffer* index_buffer = NULL;
+        hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &text_plane_ibuffer_);
+        Direct3DFailedDebugMsgBox(hr, , L"create 2D index buffer failed.");       
     }
 
     bool Direct3DRender::InitDirect3D(HWND render_window) {
@@ -41,6 +200,8 @@ namespace DuiLib {
 #if defined(DEBUG) || defined(_DEBUG)  
         //激活调试层。当指定调试标志值后，Direct3D会向VC++的输出窗口发送调试信息
         create_device_flags |= D3D11_CREATE_DEVICE_DEBUG;
+        //D2D has a different format, this flag will make sure our device is compatible with the format of D2D (BGRA)
+        create_device_flags |= D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #endif
 
         RECT rect;
@@ -54,7 +215,8 @@ namespace DuiLib {
         sd.BufferDesc.Height = height_;
         sd.BufferDesc.RefreshRate.Numerator = 60;
         sd.BufferDesc.RefreshRate.Denominator = 1;
-        sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        //D2D is only compatable with DXGI_FORMAT_B8G8R8A8_UNORM
+        sd.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
         sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
         sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
         sd.SampleDesc.Count = 1;
@@ -66,13 +228,51 @@ namespace DuiLib {
         sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
         sd.Flags = 0;
 
-        HRESULT hr = D3D11CreateDeviceAndSwapChain(0, D3D_DRIVER_TYPE_HARDWARE, 0, create_device_flags, 0, 0, D3D11_SDK_VERSION, &sd, &d3d_swap_chain_, &d3d_device_, &feature_level, &d3d_immediate_context_);
+        // Create DXGI factory to enumerate adapters
+        IDXGIFactory1 *dxgi_factory = NULL;
+        HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&dxgi_factory);
+        // Use the first adapter    
+        IDXGIAdapter1 *adapter = NULL;
+        //Find the first adapter(primary adapter)
+        hr = dxgi_factory->EnumAdapters1(0, &adapter);
+        ReleaseCOMInterface(dxgi_factory);
+        Direct3DFailedDebugMsgBox(hr, false, L"enumerate adater failed.");
+
+        hr = D3D11CreateDeviceAndSwapChain(adapter, D3D_DRIVER_TYPE_UNKNOWN, 0, create_device_flags, 0, 0, D3D11_SDK_VERSION, &sd, &d3d_swap_chain_, &d3d_device_, &feature_level, &d3d_immediate_context_);
         Direct3DFailedDebugMsgBox(hr, false, L"D3D11CreateDeviceAndSwapChain Failed.");
 
         if (feature_level != D3D_FEATURE_LEVEL_11_0) {
+            ReleaseCOMInterface(adapter);
             Direct3DMsgBox(L"Feature Level 11 unsupported.");
             return false;
         }
+
+        if (!Init2DTextRender(adapter, width_, height_)) {
+            ReleaseCOMInterface(adapter);
+            Direct3DMsgBox(L"init text render failed.");
+            return false;
+        }
+        ReleaseCOMInterface(adapter);
+
+        D3D11_RENDER_TARGET_BLEND_DESC target_blend_desc;
+        ::ZeroMemory(&target_blend_desc, sizeof(D3D11_RENDER_TARGET_BLEND_DESC));
+        target_blend_desc.BlendEnable = true;
+        target_blend_desc.SrcBlend = D3D11_BLEND_SRC_COLOR;
+        ///////////////**************new**************////////////////////
+        target_blend_desc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        ///////////////**************new**************////////////////////
+        target_blend_desc.BlendOp = D3D11_BLEND_OP_ADD;
+        target_blend_desc.SrcBlendAlpha = D3D11_BLEND_ONE;
+        target_blend_desc.DestBlendAlpha = D3D11_BLEND_ZERO;
+        target_blend_desc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        target_blend_desc.RenderTargetWriteMask = D3D10_COLOR_WRITE_ENABLE_ALL;
+
+        D3D11_BLEND_DESC blend_desc;
+        ::ZeroMemory(&blend_desc, sizeof(D3D11_BLEND_DESC));
+        blend_desc.AlphaToCoverageEnable = false;
+        blend_desc.RenderTarget[0] = target_blend_desc;
+        hr = d3d_device_->CreateBlendState(&blend_desc, &text_blend_state_);
+        Direct3DFailedDebugMsgBox(hr, false, L"CreateBlendState Failed.");
 
         hr = d3d_device_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &x4_msaa_uality_);
         Direct3DFailedDebugMsgBox(hr, false, L"CheckMultisampleQualityLevels Failed.");
@@ -128,11 +328,11 @@ namespace DuiLib {
         D3D11_RASTERIZER_DESC raster_desc;
         //Setup the raster description which will determine how and what polygons will be drawn.
         raster_desc.AntialiasedLineEnable = false;
+        raster_desc.FillMode = D3D11_FILL_SOLID;
         raster_desc.CullMode = D3D11_CULL_NONE;
         raster_desc.DepthBias = 0;
         raster_desc.DepthBiasClamp = 0.0f;
         raster_desc.DepthClipEnable = true;
-        raster_desc.FillMode = D3D11_FILL_SOLID;
         raster_desc.FrontCounterClockwise = false;
         raster_desc.MultisampleEnable = false;
         raster_desc.ScissorEnable = false;
@@ -175,9 +375,18 @@ namespace DuiLib {
         ReleaseCOMInterface(d3d_render_target_view_);
         ReleaseCOMInterface(d3d_depth_stencil_view_);
 
-        width_ = render_rect.right - render_rect.left;
-        height_ = render_rect.bottom - render_rect.top;
-        HRESULT hr = d3d_swap_chain_->ResizeBuffers(1, width_, height_, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
+        UINT width = render_rect.right - render_rect.left;
+        UINT height = render_rect.bottom - render_rect.top;
+        if (width != width_ || height != height_) {
+            //resize shared texture: actually create a new one
+            if (!CreateSharedTexture(width, height)) {
+                return;
+            }
+        }
+        width_ = width;
+        height_ = height;
+
+        HRESULT hr = d3d_swap_chain_->ResizeBuffers(1, width_, height_, DXGI_FORMAT_B8G8R8A8_UNORM, 0);
         Direct3DFailedDebugMsgBox(hr, , L"ResizeBuffers Failed.");
 
         ID3D11Texture2D* backBuffer = NULL;
@@ -219,7 +428,12 @@ namespace DuiLib {
         d3d_immediate_context_->RSSetViewports(1, &d3d_screen_viewport_);
     }
 
-    void Direct3DRender::PresentScene() {
+    void Direct3DRender::BeginDraw() {
+        //Set the default blend state (no blending) for opaque objects
+        d3d_immediate_context_->OMSetBlendState(NULL, NULL, 0xFFFFFFFF);
+    }
+
+    void Direct3DRender::EndDraw() {
         assert(d3d_swap_chain_);
 
         //switch the back buffer and the front buffer
@@ -397,7 +611,8 @@ namespace DuiLib {
     bool Direct3DRender::SetLinearSamplerState() {
         // Create the sample state
         if (!linear_sampler_state_) {
-            D3D11_SAMPLER_DESC sampler_desc = {};
+            D3D11_SAMPLER_DESC sampler_desc;
+            ::ZeroMemory(&sampler_desc, sizeof(D3D11_SAMPLER_DESC));
             sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
             sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
             sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -681,7 +896,7 @@ namespace DuiLib {
             vertex_data.SysMemSlicePitch = 0;
             ID3D11Buffer *vertex_buffer = NULL;
             HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
-            Direct3DFailedDebugMsgBox(hr, false, L"create color vertex buffer failed.";);
+            Direct3DFailedDebugMsgBox(hr, false, L"create color vertex buffer failed.");
 
 
             D3D11_BUFFER_DESC index_buffer_desc;
@@ -697,7 +912,7 @@ namespace DuiLib {
             index_data.SysMemSlicePitch = 0;
             ID3D11Buffer* index_buffer = NULL;
             hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
-            Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.";);
+            Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.");
 
             unsigned int stride = sizeof(TEXTURE_VERTEX);
             unsigned int offset = 0;
@@ -727,15 +942,10 @@ namespace DuiLib {
 
         UINT last_advance = 0;
         RECT final_text_rect = text_rect;
-        UINT test_code = 0x751A;
 
         UINT index = 0;
         std::vector<TEXTURE_VERTEX> vertice;
         std::vector<WORD> indice;
-
-        LPCTSTR str = text.GetData();
-        std::string s = CW2AEX<>(str, CP_UTF8);
-        const char* p = s.c_str();
 
         auto utf16_utf32 = [](const WORD* in, DWORD& utf32) -> UINT {
             if (!in || *in == 0) {
@@ -804,7 +1014,7 @@ namespace DuiLib {
             vertex_data.SysMemSlicePitch = 0;
             ID3D11Buffer *vertex_buffer = NULL;
             HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
-            Direct3DFailedDebugMsgBox(hr, , L"create color vertex buffer failed.";);
+            Direct3DFailedDebugMsgBox(hr, , L"create color vertex buffer failed.");
 
 
             D3D11_BUFFER_DESC index_buffer_desc;
@@ -820,7 +1030,7 @@ namespace DuiLib {
             index_data.SysMemSlicePitch = 0;
             ID3D11Buffer* index_buffer = NULL;
             hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
-            Direct3DFailedDebugMsgBox(hr, , L"create color index buffer failed.";);
+            Direct3DFailedDebugMsgBox(hr, , L"create color index buffer failed.");
 
             unsigned int stride = sizeof(TEXTURE_VERTEX);
             unsigned int offset = 0;
@@ -919,6 +1129,82 @@ namespace DuiLib {
         if (vertice.size() <= 0) {
             return;
         }
+    }
+
+    void Direct3DRender::DrawText2D(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style) {
+        if (!initialized_) {
+            return;
+        }
+
+        assert(d3d_device_);
+        assert(d3d_immediate_context_);
+
+        //Init DirectWrite
+        D2DFont font(font_info.sFontName.GetData(), font_info.iSize);
+        IDWriteTextFormat* text_format = text_formats_[font];
+        if (!text_format) {
+            if (!dwrite_factory_) {
+                HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&dwrite_factory_));
+                Direct3DFailedDebugMsgBox(hr, , L"DWrite create factory failed.");
+            }
+
+            HRESULT hr = dwrite_factory_->CreateTextFormat(
+                font_info.sFontName,
+                NULL,  //the system fonts would be used
+                DWRITE_FONT_WEIGHT_REGULAR, //a higher value is more bold
+                DWRITE_FONT_STYLE_NORMAL,
+                DWRITE_FONT_STRETCH_NORMAL,
+                font_info.iSize, //font size in DIP("device-independent pixel")
+                L"zh-CN",
+                &text_format
+            );
+            Direct3DFailedDebugMsgBox(hr, , L"DWrite create text format failed.");            
+            text_format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            hr = text_format->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            text_formats_[font] = text_format;
+        }
+
+        if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
+            return;
+        }
+        
+        HRESULT hr = keyed_mutex_10_->AcquireSync(0, 5);
+        if (hr == E_FAIL || hr == WAIT_TIMEOUT) {
+            hr = keyed_mutex_11_->ReleaseSync(0);
+            hr = keyed_mutex_10_->AcquireSync(0, 5);
+            if (hr == E_FAIL || hr == WAIT_TIMEOUT) {
+                return;
+            }
+        }
+
+        text_render_target_->BeginDraw();
+        text_render_target_->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)); //transparency background
+        D2D1_COLOR_F font_color = D2D1::ColorF(GETR(color) / 255.0f, GETG(color) / 255.0f, GETB(color) / 255.0f, GETA(color) / 255.0f);
+        text_brush_->SetColor(font_color);
+        D2D1_RECT_F rect = D2D1::RectF(text_rect.left, text_rect.top, text_rect.right - text_rect.left, text_rect.bottom - text_rect.top);
+        std::wstring render_text = CW2WEX<>(text.GetData(), CP_UTF8);
+        text_render_target_->DrawText(
+            render_text.c_str(),
+            render_text.length(),
+            text_format,
+            rect,
+            text_brush_
+        );
+        text_render_target_->EndDraw();
+
+        hr = keyed_mutex_10_->ReleaseSync(1);
+        hr = keyed_mutex_11_->AcquireSync(1, 5);
+
+        d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
+
+        UINT stride = sizeof(TEXTURE_VERTEX);
+        UINT offset = 0;
+        d3d_immediate_context_->IASetVertexBuffers(0, 1, &text_plane_vbuffer_, &stride, &offset);
+        d3d_immediate_context_->IASetIndexBuffer(text_plane_ibuffer_, DXGI_FORMAT_R16_UINT, 0);
+        
+        d3d_immediate_context_->PSSetShaderResources(0, 1, &shared_texture_resource_view_);
+        d3d_immediate_context_->PSSetSamplers(0, 1, &linear_sampler_state_);
+        d3d_immediate_context_->DrawIndexed(6,0,0);
     }
 
     bool Direct3DRender::DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color) {
@@ -1110,7 +1396,7 @@ namespace DuiLib {
 
         ID3D11Buffer *vertex_buffer = NULL;
         HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
-        Direct3DFailedDebugMsgBox(hr, false, L"create color vertex buffer failed.";);
+        Direct3DFailedDebugMsgBox(hr, false, L"create color vertex buffer failed.");
 
 
         D3D11_BUFFER_DESC index_buffer_desc;
@@ -1127,7 +1413,7 @@ namespace DuiLib {
 
         ID3D11Buffer* index_buffer = NULL;
         hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
-        Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.";);
+        Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.");
 
         unsigned int stride = sizeof(COLOR_VERTEX);
         unsigned int offset = 0;

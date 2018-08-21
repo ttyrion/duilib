@@ -3651,7 +3651,8 @@ bool CPaintManagerUI::DoGDIPaint() {
 bool CPaintManagerUI::DoD3DPaint() {
     //PAINTSTRUCT ps = { 0 };
     //::BeginPaint(m_hWndPaint, &ps);
-    
+    d3dengine_.BeginDraw();
+
     if (m_pRoot == NULL) {
         RECT rect = { 0 };
         ::GetWindowRect(m_hWndPaint, &rect);
@@ -3761,7 +3762,7 @@ bool CPaintManagerUI::DoD3DPaint() {
         }
     }
     
-    d3dengine_.PresentScene();   
+    d3dengine_.EndDraw();
 
     return true;
 }
@@ -3783,7 +3784,7 @@ void CPaintManagerUI::DrawStatusImage() {
 }
 
 void CPaintManagerUI::DrawText(const RECT& rcText, const CDuiString& text, UINT font_index, DWORD color, UINT text_style) {
-    return d3dengine_.DrawText(rcText, text, *(GetFontInfo(font_index)), color, text_style);
+    return d3dengine_.DrawText2D(rcText, text, *(GetFontInfo(font_index)), color, text_style);
 }
 
 void CPaintManagerUI::DrawBorder(const RECT& rcItem, const UINT border_size, const DWORD color) {

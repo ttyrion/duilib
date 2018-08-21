@@ -35,9 +35,9 @@ namespace DuiLib {
         std::wstring font_name_;
         UINT font_size_ = 0;
 
-        //font layout
-        float ascender_ = 0.0f;
-        float descender_ = 0.0f;
-        float font_height_ = 0.0f;
+        ////font layout
+        //float ascender_ = 0.0f;
+        //float descender_ = 0.0f;
+        //float font_height_ = 0.0f;
     };
 } // namespace DuiLib
