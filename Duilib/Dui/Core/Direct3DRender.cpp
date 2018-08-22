@@ -257,7 +257,7 @@ namespace DuiLib {
         D3D11_RENDER_TARGET_BLEND_DESC target_blend_desc;
         ::ZeroMemory(&target_blend_desc, sizeof(D3D11_RENDER_TARGET_BLEND_DESC));
         target_blend_desc.BlendEnable = true;
-        target_blend_desc.SrcBlend = D3D11_BLEND_SRC_COLOR;
+        target_blend_desc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
         ///////////////**************new**************////////////////////
         target_blend_desc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
         ///////////////**************new**************////////////////////
@@ -527,7 +527,7 @@ namespace DuiLib {
     }
 
     bool Direct3DRender::CreateTextureResource(const UINT width, const UINT height, IMAGE_FORMAT format) {
-        DXGI_FORMAT dx_format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; //default
+        DXGI_FORMAT dx_format = DXGI_FORMAT_B8G8R8A8_UNORM;
         if (format == IMAGE_FORMAT_GRAY) {
             dx_format = DXGI_FORMAT_R8_UNORM;
         }
