@@ -31,8 +31,9 @@ LRESULT CMainUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_FILE_OPENED:
         result = OnOpenFile(uMsg, wParam, lParam, handled);
         break;
-    case WM_KEYUP:
-        if (wParam == VK_ESCAPE) {
+    case WM_SYSKEYDOWN:
+        // quit on ALT + 1
+        if (wParam == 0x31 && (lParam & (1 << 29))) {
             ::PostQuitMessage(0);
         }
         break;

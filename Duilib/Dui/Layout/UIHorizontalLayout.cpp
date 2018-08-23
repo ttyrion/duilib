@@ -37,6 +37,14 @@ namespace DuiLib
 		rc.top += m_rcInset.top;
 		rc.right -= m_rcInset.right;
 		rc.bottom -= m_rcInset.bottom;
+
+        // Adjust for border
+        RECT border = GetBorderSize();
+        rc.left += border.left;
+        rc.top += border.top;
+        rc.right -= border.right;
+        rc.bottom -= border.bottom;
+
 		if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() ) rc.right -= m_pVerticalScrollBar->GetFixedWidth();
 		if( m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible() ) rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 

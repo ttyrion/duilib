@@ -1529,7 +1529,7 @@ namespace DuiLib {
 
         XMFLOAT4 color(GETR(dwColor) / 255.0f, GETG(dwColor) / 255.0f, GETB(dwColor) / 255.0f, GETA(dwColor) / 255.0f);
         COLOR_VERTEX temp_v[] = {
-            XMFLOAT3(begin_y,  begin_y, 0.0f), color,
+            XMFLOAT3(begin_x,  begin_y, 0.0f), color,
             XMFLOAT3(end_x, end_y, 0.0f), color
         };
         WORD temp_i[] = {
@@ -1539,7 +1539,7 @@ namespace DuiLib {
         std::vector<COLOR_VERTEX> vertice(temp_v, temp_v + sizeof(temp_v) / sizeof(COLOR_VERTEX));
         std::vector<WORD> indice(temp_i, temp_i + sizeof(temp_i) / sizeof(WORD));
 
-        return DrawColorVertex(vertice, indice, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+        return DrawColorVertex(vertice, indice, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
     }
 
     bool Direct3DRender::DrawRect(const RECT& rect, DWORD dwColor) {

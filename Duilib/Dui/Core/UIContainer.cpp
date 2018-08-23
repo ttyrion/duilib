@@ -644,6 +644,13 @@ namespace DuiLib
 			rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 		}
 
+        // Adjust for border
+        RECT border = GetBorderSize();
+        rc.left += border.left;
+        rc.top += border.top;
+        rc.right -= border.right;
+        rc.bottom -= border.bottom;
+
 		for( int it = 0; it < m_items.GetSize(); it++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[it]);
 			if( !pControl->IsVisible() ) continue;
@@ -887,7 +894,7 @@ namespace DuiLib
                     if (!pControl->IsVisible()) continue;
                     if (!::IntersectRect(&rcTemp, &rcPaint, &pControl->GetPos())) continue;
 
-                    //rcPaint和rc不想交，则只需绘制float控件
+                    //rcPaint和rc不相交，则只需绘制float控件
                     if (pControl->IsFloat()) {
                         if (!::IntersectRect(&rcTemp, &m_rcItem, &pControl->GetPos())) continue;
                         if (!pControl->Paint(rcPaint, pStopControl)) return false;
