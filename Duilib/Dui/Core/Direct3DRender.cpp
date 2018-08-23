@@ -50,7 +50,7 @@ namespace DuiLib {
         ReleaseCOMInterface(d3d_device_);
     }
 
-    bool Direct3DRender::CreateSharedTexture(const UINT width, const UINT height) {
+    bool Direct3DRender::CreateTextRenderTarget(const UINT width, const UINT height) {
         //If the size of the window changed, the backbuffer of the swapchain should be changed then.
         //AS a result, all the related object should be changed: shared texture, key mutex, direct2d render target and brush.
 
@@ -98,6 +98,7 @@ namespace DuiLib {
 
         //Next to set the D2D render target to the shared surface
 
+        //root factory interface for all Direct2D objects
         ID2D1Factory *factory = NULL;
         hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), (void**)&factory);
         Direct3DFailedDebugMsgBox(hr, false, L"create d2d factory failed.");
@@ -132,7 +133,7 @@ namespace DuiLib {
         HRESULT hr = D3D10CreateDevice1(adapter, D3D10_DRIVER_TYPE_HARDWARE, NULL, create_device_flags, D3D10_FEATURE_LEVEL_9_3, D3D10_1_SDK_VERSION, &d3d10_1_device_);
         Direct3DFailedDebugMsgBox(hr, false, L"D3D10CreateDevice1 Failed.");
         //temp size
-        if (!CreateSharedTexture(1, 1)) {
+        if (!CreateTextRenderTarget(1, 1)) {
             return false;
         }
 
@@ -254,23 +255,29 @@ namespace DuiLib {
         }
         ReleaseCOMInterface(adapter);
 
+        // The blending of RGB components and Alpha components is handled 
+        // by two separate similar equations may including different blending factors and blending operations
         D3D11_RENDER_TARGET_BLEND_DESC target_blend_desc;
         ::ZeroMemory(&target_blend_desc, sizeof(D3D11_RENDER_TARGET_BLEND_DESC));
         target_blend_desc.BlendEnable = true;
-        target_blend_desc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        ///////////////**************new**************////////////////////
+
+        // src: the color output of pixcel shader
+        // dest: the color has been rendered into the target(back buffer)
+        
+        // C = Asrc*Csrc + (1-Asrc)*Cdst, this equation tells us that the order we draw objects matters:
+        // We should draw opaque things first and then the transparent. The order we draw transparent objects does not matter.
+        target_blend_desc.SrcBlend = D3D11_BLEND_SRC_ALPHA; // blending factor
         target_blend_desc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-        ///////////////**************new**************////////////////////
         target_blend_desc.BlendOp = D3D11_BLEND_OP_ADD;
+
         target_blend_desc.SrcBlendAlpha = D3D11_BLEND_ONE;
         target_blend_desc.DestBlendAlpha = D3D11_BLEND_ZERO;
         target_blend_desc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-        target_blend_desc.RenderTargetWriteMask = D3D10_COLOR_WRITE_ENABLE_ALL;
+        target_blend_desc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
         D3D11_BLEND_DESC blend_desc;
         ::ZeroMemory(&blend_desc, sizeof(D3D11_BLEND_DESC));
-        blend_desc.AlphaToCoverageEnable = false;
-        blend_desc.RenderTarget[0] = target_blend_desc;
+        blend_desc.RenderTarget[0] = target_blend_desc; // All the render targets use RenderTarget[0] for blending.
         hr = d3d_device_->CreateBlendState(&blend_desc, &text_blend_state_);
         Direct3DFailedDebugMsgBox(hr, false, L"CreateBlendState Failed.");
 
@@ -379,7 +386,7 @@ namespace DuiLib {
         UINT height = render_rect.bottom - render_rect.top;
         if (width != width_ || height != height_) {
             //resize shared texture: actually create a new one
-            if (!CreateSharedTexture(width, height)) {
+            if (!CreateTextRenderTarget(width, height)) {
                 return;
             }
         }
@@ -1139,35 +1146,47 @@ namespace DuiLib {
         assert(d3d_device_);
         assert(d3d_immediate_context_);
 
+        RECT final_text_rect = text_rect;
+
         //Init DirectWrite
-        D2DFont font(font_info.sFontName.GetData(), font_info.iSize);
-        IDWriteTextFormat* text_format = text_formats_[font];
+        D2DFontKey key(font_info.sFontName.GetData(), font_info.iSize, font_info.bBold, font_info.bUnderline, font_info.bItalic);
+        IDWriteTextFormat* text_format = text_formats_[key];
         if (!text_format) {
             if (!dwrite_factory_) {
+                //root factory interface for all DirectWrite objects
                 HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&dwrite_factory_));
                 Direct3DFailedDebugMsgBox(hr, , L"DWrite create factory failed.");
             }
 
             HRESULT hr = dwrite_factory_->CreateTextFormat(
-                font_info.sFontName,
+                key.name.c_str(),
                 NULL,  //the system fonts would be used
-                DWRITE_FONT_WEIGHT_REGULAR, //a higher value is more bold
-                DWRITE_FONT_STYLE_NORMAL,
+                key.bold ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_REGULAR, //a higher value is more bold
+                key.italic ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
                 DWRITE_FONT_STRETCH_NORMAL,
-                font_info.iSize, //font size in DIP("device-independent pixel")
+                key.font_size, //font size in DIP("device-independent pixel")
                 L"zh-CN",
                 &text_format
             );
             Direct3DFailedDebugMsgBox(hr, , L"DWrite create text format failed.");
-            text_format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);  //宽度不够时，字符串也不分割成多行
+            //宽度不够时，字符串也不分割成多行，此时不会对字符串裁剪：有可能会显示出半个字符
+            text_format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+            //设置裁剪
+            DWRITE_TRIMMING trim;
+            trim.granularity = DWRITE_TRIMMING_GRANULARITY_CHARACTER;
+            trim.delimiter = 1;
+            trim.delimiterCount = 10;
+            IDWriteInlineObject* trim_sign = NULL;
+            //设置裁剪标记为省略号
+            if (text_style & DT_END_ELLIPSIS) {
+                dwrite_factory_->CreateEllipsisTrimmingSign(text_format, &trim_sign);
+            }            
+            text_format->SetTrimming(&trim, trim_sign);
             text_format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
             hr = text_format->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-            text_formats_[font] = text_format;
-        }
 
-        if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
-            return;
-        }
+            text_formats_[key] = text_format;
+        }       
         
         HRESULT hr = keyed_mutex_10_->AcquireSync(0, 5);
         if (hr == E_FAIL || hr == WAIT_TIMEOUT) {
@@ -1179,22 +1198,90 @@ namespace DuiLib {
         }
 
         text_render_target_->BeginDraw();
-        text_render_target_->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)); //transparency background
-        D2D1_COLOR_F font_color = D2D1::ColorF(GETR(color) / 255.0f, GETG(color) / 255.0f, GETB(color) / 255.0f, GETA(color) / 255.0f);
-        text_brush_->SetColor(font_color);
-        D2D1_RECT_F rect = D2D1::RectF(text_rect.left, text_rect.top, text_rect.right, text_rect.bottom);
-        std::wstring render_text = CW2WEX<>(text.GetData(), CP_UTF8);
-        text_render_target_->DrawText(
-            render_text.c_str(),
-            render_text.length(),
+        text_render_target_->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)); //transparent background
+
+        IDWriteTextLayout* text_layout = NULL;
+        hr = dwrite_factory_->CreateTextLayout(
+            text, 
+            text.GetLength(),
             text_format,
-            rect,
-            text_brush_
-        );
+            text_rect.right - text_rect.left,
+            text_rect.bottom - text_rect.top,
+            &text_layout);
+
+        if (key.underline) {
+            DWRITE_TEXT_RANGE range;
+            range.startPosition = 0;
+            range.length = text.GetLength();
+            text_layout->SetUnderline(true, range);
+        }
+        
+        DWRITE_TEXT_METRICS metrics;
+        text_layout->GetMetrics(&metrics);
+        UINT top_padding = 0;
+        UINT left_padding = 0;
+        UINT text_width = metrics.width;
+        UINT text_height = metrics.height;
+        if (text_style & DT_VCENTER) {
+            top_padding = (final_text_rect.bottom - final_text_rect.top - text_height) / 2;
+        }
+
+        if (text_style & DT_TOP) {
+            top_padding = 0;
+        }
+
+        if (text_style & DT_BOTTOM) {
+            top_padding = final_text_rect.bottom - final_text_rect.top - text_height;
+        }
+
+        if (text_style & DT_CENTER) {
+            //暂时简单处理，假设每个字符宽度一样
+            left_padding = (final_text_rect.right - final_text_rect.left - text_width) / 2;
+        }
+
+        if (text_style & DT_LEFT) {
+            left_padding = 0;
+        }
+
+        if (text_style & DT_RIGHT) {
+            left_padding = final_text_rect.right - final_text_rect.left - text_width;
+        }
+
+        if (top_padding < 0) {
+            top_padding = 0;
+        }
+
+        if (left_padding < 0) {
+            left_padding = 0;
+        }
+
+        final_text_rect.top += top_padding;
+        final_text_rect.left += left_padding;
+        final_text_rect.right = final_text_rect.left + text_width;
+        final_text_rect.bottom = final_text_rect.top + text_height;
+
+
+        D2D1_RECT_F rect = D2D1::RectF(text_rect.left, text_rect.top, text_rect.right, text_rect.bottom);
+        D2D1_COLOR_F font_color = D2D1::ColorF(GETB(color) / 255.0f, GETG(color) / 255.0f, GETR(color) / 255.0f, GETA(color) / 255.0f);
+        text_brush_->SetColor(font_color);
+        //std::wstring render_text = CW2WEX<>(text.GetData(), CP_UTF8);
+        //text_render_target_->DrawText(
+        //    render_text.c_str(),
+        //    render_text.length(),
+        //    text_format,
+        //    rect,
+        //    text_brush_
+        //);
+        D2D1_POINT_2F origin = D2D1::Point2F(final_text_rect.left, final_text_rect.top);
+        text_render_target_->DrawTextLayout(origin, text_layout, text_brush_);
         text_render_target_->EndDraw();
 
         hr = keyed_mutex_10_->ReleaseSync(1);
         hr = keyed_mutex_11_->AcquireSync(1, 5);
+
+        if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
+            return;
+        }
 
         d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
 

@@ -3,7 +3,7 @@
     <Font id= "1" name="微软雅黑" size="14" bold="false"/>
 	<VerticalLayout name="root" bkcolor="#FF00FF00" bordercolor="#FF000000" bordersize="1">
         <HorizontalLayout name="titlebar" height="40" bkcolor="#FF666666">
-            <Button name="menu" text="菜单" font="1" width="80" bkcolor="#FF000000" textcolor="#FFFFFFFF"/>
+            <Button name="menu" text="菜单" font="1" align="right-center" width="80" bkcolor="#FF000000" textcolor="#FFFFFFFF"/>
             <Control />
         </HorizontalLayout>
         <HorizontalLayout name="client" bkimage="bk.png" bkcolor="#FFFF0000">

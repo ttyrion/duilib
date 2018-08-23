@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Window size="80,123" >
     <Font id= "1" name="宋体" size="14" bold="false"/>
+    <Font id= "2" name="宋体" size="12" underline="true" bold="true"/>
 	<VerticalLayout name="root" bkcolor="#FF333333">
-        <Button name="about" text="关于" font="1" align="left" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>
+        <Button name="about" text="关于" font="1" align="right-top" textpadding="10,0,0,0" height="30" textcolor="#FF999999" hottextcolor="#FF5EA900"/>
         <Control height="1" bkcolor="#FF000000"/>
-        <Button name="open_file" text="打开文件" font="1" align="left" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>
+        <Button name="open_file" text="打开文件" font="2" align="center" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>
         <Control height="1" bkcolor="#FF000000"/>
-        <Button name="open_dir" text="打开文件夹" align="left" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>
+        <Button name="open_dir" text="打开文件夹ABCD打开" align="left" textpadding="10,0,0,0" height="30" textcolor="#FF00FF00" hottextcolor="#FF5EA900" endellipsis="true"/>
         <Control height="1" bkcolor="#FF000000"/>
-        <Button name="exit" text="退出" align="left" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>        
+        <Button name="exit" text="退出" textcolor="#FFFF0000" align="left" textpadding="10,0,0,0" height="30" hottextcolor="#FF5EA900"/>        
     </VerticalLayout>
 </Window>

@@ -65,20 +65,27 @@ namespace DuiLib {
         signed long advance = 0;
     };
 
-    struct D2DFont {
-        D2DFont(const std::wstring& name, const UINT font_size) {
+    struct D2DFontKey {
+        D2DFontKey(const std::wstring& name, const UINT font_size, bool bold, bool underline, bool italic) {
             this->name = name;
             this->font_size = font_size;
+            this->bold = bold;
+            this->underline = underline;
+            this->italic = italic;
         };
 
         std::wstring name;
         UINT font_size = 0;
+        bool bold;
+        bool underline;
+        bool italic;
     };
 
     class D2DFontLess {
     public:
-        bool operator() (const D2DFont& lhs, const D2DFont& rhs) const {
-            return lhs.name < rhs.name && lhs.font_size < rhs.font_size;
+        bool operator() (const D2DFontKey& lhs, const D2DFontKey& rhs) const {
+            return std::tie(lhs.name, lhs.font_size, lhs.bold, lhs.underline, lhs.italic)
+                 < std::tie(rhs.name, rhs.font_size, rhs.bold, rhs.underline, rhs.italic);
         }
     };
 

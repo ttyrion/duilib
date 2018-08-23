@@ -61,7 +61,7 @@ namespace DuiLib {
         bool DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color);
 
     private:
-        bool CreateSharedTexture(const UINT width, const UINT height);
+        bool CreateTextRenderTarget(const UINT width, const UINT height);
         //initialize Direct2D, Direct3D 10_1, and DirectWrite
         bool Init2DTextRender(IDXGIAdapter1 *adapter, const UINT width, const UINT height);
         void Init2DScreenTexture();
@@ -121,14 +121,18 @@ namespace DuiLib {
         ID3D10Device1* d3d10_1_device_;
         IDXGIKeyedMutex* keyed_mutex_11_;
         IDXGIKeyedMutex* keyed_mutex_10_;
+
+        // They are Device-Dependent Resources(bound to a rendering device when they are created 
+        // and must be released and recreated if the device becomes invalid.)
         ID2D1RenderTarget* text_render_target_;
         ID2D1SolidColorBrush* text_brush_;
+
         ID3D11Texture2D* shared_texture_;
         ID3D11ShaderResourceView* shared_texture_resource_view_;
         ID3D11Buffer* text_plane_vbuffer_;
         ID3D11Buffer* text_plane_ibuffer_;        
         IDWriteFactory* dwrite_factory_;
         //IDWriteTextFormat* text_format;
-        std::map<D2DFont, IDWriteTextFormat*, D2DFontLess> text_formats_;
+        std::map<D2DFontKey, IDWriteTextFormat*, D2DFontLess> text_formats_;
     };
 } // namespace DuiLib
