@@ -74,10 +74,6 @@ namespace DuiLib
 			if( pControl->IsFloat() ) continue;
 			szControlAvailable = szAvailable;
 			RECT rcPadding = pControl->GetPadding();
-            rcPadding.left -= border.left;
-            rcPadding.top -= border.top;
-            rcPadding.right -= border.right;
-            rcPadding.bottom -= border.bottom;
 			szControlAvailable.cy -= rcPadding.top + rcPadding.bottom;
             //此处可见，xml里配置的 width 和 height 属性，用于提供布局时的参考
 			iControlMaxWidth = pControl->GetFixedWidth();

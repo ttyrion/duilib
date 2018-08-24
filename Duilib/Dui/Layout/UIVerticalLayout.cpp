@@ -126,10 +126,6 @@ namespace DuiLib
 
 			iEstimate += 1;
 			RECT rcPadding = pControl->GetPadding();
-            rcPadding.left -= border.left;
-            rcPadding.top -= border.top;
-            rcPadding.right -= border.right;
-            rcPadding.bottom -= border.bottom;
 
 			szRemaining.cy -= rcPadding.top;
 
