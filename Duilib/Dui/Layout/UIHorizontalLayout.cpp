@@ -67,25 +67,42 @@ namespace DuiLib
 		SIZE szControlAvailable;
 		int iControlMaxWidth = 0;
 		int iControlMaxHeight = 0;
-		for( int it1 = 0; it1 < m_items.GetSize(); it1++ ) {
-			CControlUI* pControl = static_cast<CControlUI*>(m_items[it1]);
+        const UINT items = m_items.GetSize();
+		for( int index = 0; index < items; index++ ) {
+			CControlUI* pControl = static_cast<CControlUI*>(m_items[index]);
 			if( !pControl->IsVisible() ) continue;
 			if( pControl->IsFloat() ) continue;
 			szControlAvailable = szAvailable;
 			RECT rcPadding = pControl->GetPadding();
+            rcPadding.left -= border.left;
+            rcPadding.top -= border.top;
+            rcPadding.right -= border.right;
+            rcPadding.bottom -= border.bottom;
 			szControlAvailable.cy -= rcPadding.top + rcPadding.bottom;
+            //此处可见，xml里配置的 width 和 height 属性，用于提供布局时的参考
 			iControlMaxWidth = pControl->GetFixedWidth();
 			iControlMaxHeight = pControl->GetFixedHeight();
+
+            //Duilib 默认的 maxwidth 和 maxheight 是9999
 			if (iControlMaxWidth <= 0) iControlMaxWidth = pControl->GetMaxWidth(); 
 			if (iControlMaxHeight <= 0) iControlMaxHeight = pControl->GetMaxHeight();
+
+            //当留给当前控件的区域足够时，控件实际的width 和 height才是xml里配置的 width 和 height
 			if (szControlAvailable.cx > iControlMaxWidth) szControlAvailable.cx = iControlMaxWidth;
 			if (szControlAvailable.cy > iControlMaxHeight) szControlAvailable.cy = iControlMaxHeight;
 			SIZE sz = { 0 };
 			if (pControl->GetFixedWidth() == 0) {
-				nAdjustables++;
+                //没有配置width的控件, cxFixed不会包含它的宽度，它的宽度由后面的平均值cxExpand确定
+                nAdjustables++;
+
+                //如果配置了height属性，height就会影响最终对子控件布局需要的高度的预估
 				sz.cy = pControl->GetFixedHeight();
 			}
+            //配置了width属性
 			else {
+                //预估控件大小：
+                //如果配置了height属性，EstimateSize一般都会直接返回 m_cxyFixed
+                //否则，EstimateSize返回一个{width, 根据字体高度计算出来的height}；
 				sz = pControl->EstimateSize(szControlAvailable);
 				if (sz.cx == 0) {
 					nAdjustables++;
@@ -96,39 +113,49 @@ namespace DuiLib
 				}
 			}
 
-			cxFixed += sz.cx + pControl->GetPadding().left + pControl->GetPadding().right;
+			cxFixed += sz.cx + rcPadding.left + rcPadding.right;
 
 			sz.cy = MAX(sz.cy, 0);
 			if( sz.cy < pControl->GetMinHeight() ) sz.cy = pControl->GetMinHeight();
 			if( sz.cy > pControl->GetMaxHeight() ) sz.cy = pControl->GetMaxHeight();
+            //布局子控件需要的高度的预估
 			cyNeeded = MAX(cyNeeded, sz.cy + rcPadding.top + rcPadding.bottom);
 			nEstimateNum++;
 		}
+
+        // 布局子控件需要的宽度的预估，不包括没有配置width的控件
 		cxFixed += (nEstimateNum - 1) * m_iChildPadding;
 
-		// Place elements
+		// 子控件布局
 		int cxNeeded = 0;
+        // cxExpand是一个平均值，即占位控件的宽度是最后的多余宽度的一个平均值
 		int cxExpand = 0;
 		if( nAdjustables > 0 ) cxExpand = MAX(0, (szAvailable.cx - cxFixed) / nAdjustables);
-		// Position the elements
+
 		SIZE szRemaining = szAvailable;
 		int iPosX = rc.left;
 		if( m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible() ) {
 			iPosX -= m_pHorizontalScrollBar->GetScrollPos();
 		}
-		int iEstimate = 0;
+		//int iEstimate = 0;
 		int iAdjustable = 0;
 		int cxFixedRemaining = cxFixed;
-		for( int it2 = 0; it2 < m_items.GetSize(); it2++ ) {
-			CControlUI* pControl = static_cast<CControlUI*>(m_items[it2]);
+		for( int index = 0; index < items; index++ ) {
+			CControlUI* pControl = static_cast<CControlUI*>(m_items[index]);
 			if( !pControl->IsVisible() ) continue;
 			if( pControl->IsFloat() ) {
-				SetFloatPos(it2);
+                //float控件布局和容器其他子控件无关，从参数也可以看出
+				SetFloatPos(index);
 				continue;
 			}
 			
-			iEstimate += 1;
+			//iEstimate += 1;
 			RECT rcPadding = pControl->GetPadding();
+            rcPadding.left -= border.left;
+            rcPadding.top -= border.top;
+            rcPadding.right -= border.right;
+            rcPadding.bottom -= border.bottom;
+
 			szRemaining.cx -= rcPadding.left;
 
 			szControlAvailable = szRemaining;
@@ -139,8 +166,13 @@ namespace DuiLib
 			if (iControlMaxHeight <= 0) iControlMaxHeight = pControl->GetMaxHeight();
 			if (szControlAvailable.cx > iControlMaxWidth) szControlAvailable.cx = iControlMaxWidth;
 			if (szControlAvailable.cy > iControlMaxHeight) szControlAvailable.cy = iControlMaxHeight;
-      cxFixedRemaining = cxFixedRemaining - (rcPadding.left + rcPadding.right);
-			if (iEstimate > 1) cxFixedRemaining = cxFixedRemaining - m_iChildPadding;
+            cxFixedRemaining = cxFixedRemaining - (rcPadding.left + rcPadding.right);
+			//if (iEstimate > 1) cxFixedRemaining = cxFixedRemaining - m_iChildPadding;
+            cxFixedRemaining = cxFixedRemaining - m_iChildPadding;
+
+            //正常情况下EstimateSize返回的预估大小就是控件的 m_cxyFixed
+            //由此可见，父容器按顺序布局子控件，会尽量按照控件的预设大小m_cxyFixed来布局,除非随后空间不够，就会调整控件尺寸和位置
+            //简而言之：m_cxyFixed(xml里面配置的width和height)，就是一个预设值，真实的值要等实际布局后才能算出来
 			SIZE sz = pControl->EstimateSize(szControlAvailable);
 			if (pControl->GetFixedWidth() == 0 || sz.cx == 0) {
 				iAdjustable++;

@@ -957,6 +957,7 @@ namespace DuiLib
 
 		SIZE szXY = pControl->GetFixedXY();
 		SIZE sz = {pControl->GetFixedWidth(), pControl->GetFixedHeight()};
+        // 默认值是{0.0f,0.0f,0.0f,0.0f}，所以xml里配置float="true",float控件的位置和大小就完全由pos属性决定
 		TPercentInfo rcPercent = pControl->GetFloatPercent();
 		LONG width = m_rcItem.right - m_rcItem.left;
 		LONG height = m_rcItem.bottom - m_rcItem.top;

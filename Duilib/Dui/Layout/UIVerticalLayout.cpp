@@ -72,6 +72,11 @@ namespace DuiLib
 			if( pControl->IsFloat() ) continue;
 			szControlAvailable = szAvailable;
 			RECT rcPadding = pControl->GetPadding();
+            rcPadding.left -= border.left;
+            rcPadding.top -= border.top;
+            rcPadding.right -= border.right;
+            rcPadding.bottom -= border.bottom;
+
 			szControlAvailable.cx -= rcPadding.left + rcPadding.right;
 			iControlMaxWidth = pControl->GetFixedWidth();
 			iControlMaxHeight = pControl->GetFixedHeight();
@@ -121,6 +126,11 @@ namespace DuiLib
 
 			iEstimate += 1;
 			RECT rcPadding = pControl->GetPadding();
+            rcPadding.left -= border.left;
+            rcPadding.top -= border.top;
+            rcPadding.right -= border.right;
+            rcPadding.bottom -= border.bottom;
+
 			szRemaining.cy -= rcPadding.top;
 
 			szControlAvailable = szRemaining;
@@ -131,7 +141,7 @@ namespace DuiLib
 			if (iControlMaxHeight <= 0) iControlMaxHeight = pControl->GetMaxHeight();
 			if (szControlAvailable.cx > iControlMaxWidth) szControlAvailable.cx = iControlMaxWidth;
 			if (szControlAvailable.cy > iControlMaxHeight) szControlAvailable.cy = iControlMaxHeight;
-      cyFixedRemaining = cyFixedRemaining - (rcPadding.top + rcPadding.bottom);
+            cyFixedRemaining = cyFixedRemaining - (rcPadding.top + rcPadding.bottom);
 			if (iEstimate > 1) cyFixedRemaining = cyFixedRemaining - m_iChildPadding;
 			SIZE sz = pControl->EstimateSize(szControlAvailable);
 			if( sz.cy == 0 ) {

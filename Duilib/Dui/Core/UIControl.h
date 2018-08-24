@@ -6,8 +6,10 @@
 
 namespace DuiLib {
 
-/////////////////////////////////////////////////////////////////////////////////////
-//
+/*
+    目前CControlUI基类会根据mode_来调用GDI或者D3D绘制，实际上更好的方案是从CControlUI派生出CGDIControlUI和CD3DControlUI。
+    在解析xml的时候就根据mode来创建CGDIControlUI或者CD3DControlUI。后期打算把Duilib控件类层次改一下。
+*/
 
 typedef CControlUI* (CALLBACK* FINDCONTROLPROC)(CControlUI*, LPVOID);
 
