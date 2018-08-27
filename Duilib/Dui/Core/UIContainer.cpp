@@ -646,6 +646,10 @@ namespace DuiLib
 
         // Adjust for border
         RECT border = GetBorderSize();
+        rc.left += border.left;
+        rc.top += border.top;
+        rc.right -= border.right;
+        rc.bottom -= border.bottom;
 
 		for( int it = 0; it < m_items.GetSize(); it++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[it]);

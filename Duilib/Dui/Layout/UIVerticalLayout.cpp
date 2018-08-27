@@ -66,17 +66,13 @@ namespace DuiLib
 		SIZE szControlAvailable;
 		int iControlMaxWidth = 0;
 		int iControlMaxHeight = 0;
-		for( int it1 = 0; it1 < m_items.GetSize(); it1++ ) {
-			CControlUI* pControl = static_cast<CControlUI*>(m_items[it1]);
+        const UINT items = m_items.GetSize();
+		for( int iter = 0; iter < items; ++iter) {
+			CControlUI* pControl = static_cast<CControlUI*>(m_items[iter]);
 			if( !pControl->IsVisible() ) continue;
 			if( pControl->IsFloat() ) continue;
 			szControlAvailable = szAvailable;
 			RECT rcPadding = pControl->GetPadding();
-            rcPadding.left -= border.left;
-            rcPadding.top -= border.top;
-            rcPadding.right -= border.right;
-            rcPadding.bottom -= border.bottom;
-
 			szControlAvailable.cx -= rcPadding.left + rcPadding.right;
 			iControlMaxWidth = pControl->GetFixedWidth();
 			iControlMaxHeight = pControl->GetFixedHeight();
@@ -116,19 +112,17 @@ namespace DuiLib
 		int iEstimate = 0;
 		int iAdjustable = 0;
 		int cyFixedRemaining = cyFixed;
-		for( int it2 = 0; it2 < m_items.GetSize(); it2++ ) {
-			CControlUI* pControl = static_cast<CControlUI*>(m_items[it2]);
+		for( int iter = 0; iter < items; ++iter ) {
+			CControlUI* pControl = static_cast<CControlUI*>(m_items[iter]);
 			if( !pControl->IsVisible() ) continue;
 			if( pControl->IsFloat() ) {
-				SetFloatPos(it2);
+				SetFloatPos(iter);
 				continue;
 			}
 
 			iEstimate += 1;
 			RECT rcPadding = pControl->GetPadding();
-
 			szRemaining.cy -= rcPadding.top;
-
 			szControlAvailable = szRemaining;
 			szControlAvailable.cx -= rcPadding.left + rcPadding.right;
 			iControlMaxWidth = pControl->GetFixedWidth();

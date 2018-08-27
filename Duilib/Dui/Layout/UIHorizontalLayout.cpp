@@ -147,13 +147,7 @@ namespace DuiLib
 			
 			//iEstimate += 1;
 			RECT rcPadding = pControl->GetPadding();
-            rcPadding.left -= border.left;
-            rcPadding.top -= border.top;
-            rcPadding.right -= border.right;
-            rcPadding.bottom -= border.bottom;
-
 			szRemaining.cx -= rcPadding.left;
-
 			szControlAvailable = szRemaining;
 			szControlAvailable.cy -= rcPadding.top + rcPadding.bottom;
 			iControlMaxWidth = pControl->GetFixedWidth();
