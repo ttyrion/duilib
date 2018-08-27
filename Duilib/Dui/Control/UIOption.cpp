@@ -111,27 +111,67 @@ namespace DuiLib
 
 	LPCTSTR COptionUI::GetSelectedImage()
 	{
-		return m_diSelected.sDrawString;
+        if (mode_ == DrawMode_GDI) {
+            return m_diSelected.sDrawString;
+        }
+        else {
+            return selected_image_data_.sDrawString;
+        }
 	}
 
 	void COptionUI::SetSelectedImage(LPCTSTR pStrImage)
 	{
-		if( m_diSelected.sDrawString == pStrImage && m_diSelected.pImageInfo != NULL ) return;
-		m_diSelected.Clear();
-		m_diSelected.sDrawString = pStrImage;
+        switch (mode_)
+        {
+        case DuiLib::DrawMode_GDI: {
+            if (m_diSelected.sDrawString == pStrImage && m_diSelected.pImageInfo != NULL) return;
+            m_diSelected.Clear();
+            m_diSelected.sDrawString = pStrImage;
+        }
+                                   break;
+        case DuiLib::DrawMode_Direct3D_11: {
+            if (selected_image_data_.sDrawString == pStrImage && !selected_image_data_.empty()) return;
+            selected_image_data_.clear();
+            selected_image_data_.sDrawString = pStrImage;
+            Direct3DRender::LoadImage(selected_image_data_);
+        }
+        default:
+            break;
+        }
+
 		Invalidate();
 	}
 
 	LPCTSTR COptionUI::GetSelectedHotImage()
 	{
-		return m_diSelectedHot.sDrawString;
+        if (mode_ == DrawMode_GDI) {
+            return m_diSelectedHot.sDrawString;
+        }
+        else {
+            return selected_hot_image_data_.sDrawString;
+        }
 	}
 
 	void COptionUI::SetSelectedHotImage( LPCTSTR pStrImage )
 	{
-		if( m_diSelectedHot.sDrawString == pStrImage && m_diSelectedHot.pImageInfo != NULL ) return;
-		m_diSelectedHot.Clear();
-		m_diSelectedHot.sDrawString = pStrImage;
+        switch (mode_)
+        {
+        case DuiLib::DrawMode_GDI: {
+            if (m_diSelectedHot.sDrawString == pStrImage && m_diSelectedHot.pImageInfo != NULL) return;
+            m_diSelectedHot.Clear();
+            m_diSelectedHot.sDrawString = pStrImage;
+        }
+                                   break;
+        case DuiLib::DrawMode_Direct3D_11: {
+            if (selected_hot_image_data_.sDrawString == pStrImage && !selected_hot_image_data_.empty()) return;
+            selected_hot_image_data_.clear();
+            selected_hot_image_data_.sDrawString = pStrImage;
+            Direct3DRender::LoadImage(selected_hot_image_data_);
+        }
+        default:
+            break;
+        }
+
 		Invalidate();
 	}
 
@@ -221,6 +261,41 @@ Label_ForeImage:
 		DrawImage(hDC, m_diFore);
 	}
 
+    void COptionUI::PaintStatusImage()
+    {
+        auto draw_fore_image = [this]() {
+            DrawImage(fore_image_data_);
+        };
+
+        if ((m_uButtonState & UISTATE_SELECTED) != 0) {
+            if ((m_uButtonState & UISTATE_HOT) != 0)
+            {
+                if (DrawImage(selected_hot_image_data_)) {
+                    draw_fore_image();
+                    return;
+                }
+            }
+
+            if (DrawImage(selected_image_data_)) {
+                draw_fore_image();
+                return;
+            }
+            else if (m_dwSelectedBkColor != 0) {
+                if (m_pManager) {
+                    m_pManager->DrawBkColor(m_rcPaint, m_dwSelectedBkColor);
+                }
+                draw_fore_image();
+                return;
+            }
+        }
+
+        UINT uSavedState = m_uButtonState;
+        m_uButtonState &= ~UISTATE_PUSHED;
+        CButtonUI::PaintStatusImage();
+        m_uButtonState = uSavedState;
+        draw_fore_image();
+    }
+
 	void COptionUI::PaintText(HDC hDC)
 	{
 		if( (m_uButtonState & UISTATE_SELECTED) != 0 )
@@ -256,4 +331,36 @@ Label_ForeImage:
 			m_uButtonState = uSavedState;
 		}
 	}
+
+    void COptionUI::PaintText() {
+        if ((m_uButtonState & UISTATE_SELECTED) != 0)
+        {
+            DWORD oldTextColor = m_dwTextColor;
+            if (m_dwSelectedTextColor != 0) m_dwTextColor = m_dwSelectedTextColor;
+
+            if (m_dwTextColor == 0) m_dwTextColor = m_pManager->GetDefaultFontColor();
+            if (m_dwDisabledTextColor == 0) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+
+            if (m_sText.IsEmpty()) return;
+            int nLinks = 0;
+            RECT rc = m_rcItem;
+            rc.left += m_rcTextPadding.left;
+            rc.right -= m_rcTextPadding.right;
+            rc.top += m_rcTextPadding.top;
+            rc.bottom -= m_rcTextPadding.bottom;
+
+            if (m_pManager) {
+                m_pManager->DrawText(rc, m_sText, m_iFont, IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor, m_uTextStyle);
+            }
+
+            m_dwTextColor = oldTextColor;
+        }
+        else
+        {
+            UINT uSavedState = m_uButtonState;
+            m_uButtonState &= ~UISTATE_PUSHED;
+            CButtonUI::PaintText();
+            m_uButtonState = uSavedState;
+        }
+    }
 }

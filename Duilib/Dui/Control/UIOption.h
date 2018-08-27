@@ -44,6 +44,8 @@ namespace DuiLib
 
 		void PaintStatusImage(HDC hDC);
 		void PaintText(HDC hDC);
+        void PaintText();
+        void PaintStatusImage();
 
 	protected:
 		bool			m_bSelected;
@@ -55,6 +57,10 @@ namespace DuiLib
 		TDrawInfo		m_diSelected;
 		TDrawInfo		m_diSelectedHot;
 		TDrawInfo		m_diFore;
+
+        //for d3d rendering
+        ImageData selected_image_data_;
+        ImageData selected_hot_image_data_;
 	};
 
 } // namespace DuiLib
