@@ -55,7 +55,6 @@ namespace DuiLib {
 
         bool FillColor(const RECT& rect, DWORD color);
         bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image, const DWORD bkcolor);
-        void DrawStatusImage();
         void DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         void DrawText2D(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         bool DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color);

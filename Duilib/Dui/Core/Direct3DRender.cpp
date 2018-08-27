@@ -937,10 +937,6 @@ namespace DuiLib {
         return true;
     }
 
-    void Direct3DRender::DrawStatusImage() {
-        
-    }
-
     void Direct3DRender::DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style) {
         if (!initialized_) {
             return;
