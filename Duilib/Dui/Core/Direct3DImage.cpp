@@ -116,11 +116,41 @@ namespace DuiLib {
             }
         }
 
-        UINT pixels = x * y;
-        image.bitmap.width = x;
-        image.bitmap.height = y;
-        image.bitmap.buffer.clear();
-        image.bitmap.buffer.append((char*)pImage, pixels * channels);
+        if (image.source.left == 0 && image.source.right == 0 && image.source.top == 0 && image.source.bottom == 0) {
+            UINT pixels = x * y;
+            image.bitmap.width = x;
+            image.bitmap.height = y;
+            image.source.right = x;
+            image.source.bottom = y;
+            image.bitmap.buffer.clear();
+            image.bitmap.buffer.append((char*)pImage, pixels * channels);
+        }
+        else {
+            if (image.source.left < 0) {
+                image.source.left = 0;
+            }
+            if (image.source.right > x) {
+                image.source.right = x;
+            }
+            if (image.source.top < 0) {
+                image.source.top = 0;
+            }
+            if (image.source.bottom > y) {
+                image.source.bottom = y;
+            }
+
+            image.bitmap.width = image.source.right - image.source.left;
+            image.bitmap.height = image.source.bottom - image.source.top;
+            image.bitmap.buffer.clear();
+            for (UINT i = image.source.top; i < image.source.bottom && i < y; ++i) {
+                image.bitmap.buffer.append((char*)(pImage + i * x * channels + image.source.left * channels), image.bitmap.width * channels);
+            }
+
+            image.source.left = 0;
+            image.source.top = 0;
+            image.source.right = image.bitmap.width;
+            image.source.bottom = image.bitmap.height;
+        }        
 
         //for (int i = 0; i < pixel; i++) {
         //    image.a[i] = pImage[i * 4 + 3];

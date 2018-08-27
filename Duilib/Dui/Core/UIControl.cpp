@@ -166,6 +166,21 @@ DWORD CControlUI::GetBkColor() const
     return m_dwBackColor;
 }
 
+DWORD CControlUI::GetBlendBkColor() const
+{
+    const CControlUI* ctrl = this;
+    DWORD blend_color = ctrl->GetBkColor();
+    while (blend_color == 0) {
+        ctrl = ctrl->GetParent();
+        if (!ctrl) {
+            break;
+        }
+        blend_color = ctrl->GetBkColor();
+    }
+
+    return blend_color;
+}
+
 void CControlUI::SetBkColor(DWORD dwBackColor)
 {
     if( m_dwBackColor == dwBackColor ) return;
@@ -318,7 +333,7 @@ bool CControlUI::DrawImage(HDC hDC, TDrawInfo& drawInfo)
 
 bool CControlUI::DrawImage(ImageData& image) {
     if (m_pManager) {
-        return m_pManager->DrawImage(m_rcItem, m_rcPaint, image);
+        return m_pManager->DrawImage(m_rcItem, m_rcPaint, image, GetBlendBkColor());
     }
 
     return false;

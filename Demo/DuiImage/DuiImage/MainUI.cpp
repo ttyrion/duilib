@@ -36,6 +36,10 @@ LRESULT CMainUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (wParam == 0x31 && (lParam & (1 << 29))) {
             ::PostQuitMessage(0);
         }
+        // repaint the window on ALT + 2
+        else if (wParam == 0x32 && (lParam & (1 << 29))) {
+            ::InvalidateRect(m_hWnd, NULL, FALSE);
+        }
         break;
     }
     
@@ -152,7 +156,9 @@ LRESULT CMainUI::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &hand
     caption.right = main_area.right - menu_area.right;
     caption.bottom = menu_area.bottom;
 
-    if (::PtInRect(&caption, pt)) {
+    CControlUI* ctrl = pntm_.FindSubControlByPoint(NULL, pt);
+    std::wstring ctrl_class_name = ctrl->GetClass();
+    if (::PtInRect(&caption, pt) && ctrl_class_name != DUI_CTR_BUTTON) {
         return HTCAPTION;  //return HTCAPTION to make system treat this area as a titlebar
     }
     else return HTCLIENT;

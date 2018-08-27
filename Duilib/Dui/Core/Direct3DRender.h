@@ -54,12 +54,13 @@ namespace DuiLib {
         void EndDraw();
 
         bool FillColor(const RECT& rect, DWORD color);
-        bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image);
+        bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image, const DWORD bkcolor);
         void DrawStatusImage();
         void DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         void DrawText2D(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         bool DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color);
 
+        static bool LoadImage(ImageData& image);
     private:
         bool CreateTextRenderTarget(const UINT width, const UINT height);
         //initialize Direct2D, Direct3D 10_1, and DirectWrite
@@ -73,8 +74,7 @@ namespace DuiLib {
         bool CreateTextureResource(const UINT width, const UINT height, IMAGE_FORMAT format);
         bool UpdateTextureResource(const DuiBitmap& bitmap);
         bool SetLinearSamplerState();
-
-        bool LoadImage(ImageData& image);
+        
         bool DrawColorVertex(const std::vector<COLOR_VERTEX>& vertice, const std::vector<WORD>& indice, const D3D11_PRIMITIVE_TOPOLOGY topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         bool DrawLine(const POINT& begin, const POINT& end, DWORD dwcolor);
         bool DrawRect(const RECT& rect, DWORD color);

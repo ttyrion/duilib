@@ -395,7 +395,7 @@ public:
 
     DrawMode GetDrawMode();
     void DrawBkColor(const RECT&rect, DWORD color);
-    bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image);
+    bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image, const DWORD bkcolor = 0);
     void DrawStatusImage();
     void DrawText(const RECT& rcText, const CDuiString& text, UINT font_index, DWORD color, UINT text_style);
     void DrawBorder(const RECT& rcItem, const UINT border_size, const DWORD color);

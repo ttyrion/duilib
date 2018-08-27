@@ -206,41 +206,97 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetNormalImage()
 	{
-		return m_diNormal.sDrawString;
+        if (mode_ == DrawMode_GDI) {
+            return m_diNormal.sDrawString;
+        }
+        else {
+            return normal_image_data_.sDrawString;
+        }
 	}
 
 	void CButtonUI::SetNormalImage(LPCTSTR pStrImage)
 	{
-		if( m_diNormal.sDrawString == pStrImage && m_diNormal.pImageInfo != NULL ) return;
-		m_diNormal.Clear();
-		m_diNormal.sDrawString = pStrImage;
-		Invalidate();
+        switch (mode_)
+        {
+        case DuiLib::DrawMode_GDI: {
+            if (m_diNormal.sDrawString == pStrImage && m_diNormal.pImageInfo != NULL) return;
+            m_diNormal.Clear();
+            m_diNormal.sDrawString = pStrImage;
+        }
+                                   break;
+        case DuiLib::DrawMode_Direct3D_11: {
+            if (normal_image_data_.sDrawString == pStrImage && !normal_image_data_.empty()) return;
+            normal_image_data_.clear();
+            normal_image_data_.sDrawString = pStrImage;
+            Direct3DRender::LoadImage(normal_image_data_);
+        }
+        default:
+            break;
+        }
+
+        Invalidate();
+
+        return;
 	}
 
 	LPCTSTR CButtonUI::GetHotImage()
 	{
-		return m_diHot.sDrawString;
+        if (mode_ == DrawMode_GDI) {
+            return m_diHot.sDrawString;
+        }
+        else {
+            return hot_image_data_.sDrawString;
+        }
 	}
 
 	void CButtonUI::SetHotImage(LPCTSTR pStrImage)
 	{
-		if( m_diHot.sDrawString == pStrImage && m_diHot.pImageInfo != NULL ) return;
-		m_diHot.Clear();
-		m_diHot.sDrawString = pStrImage;
-		Invalidate();
+        switch (mode_)
+        {
+        case DuiLib::DrawMode_GDI: {
+            if (m_diHot.sDrawString == pStrImage && m_diHot.pImageInfo != NULL) return;
+            m_diHot.Clear();
+            m_diHot.sDrawString = pStrImage;
+        }
+                                   break;
+        case DuiLib::DrawMode_Direct3D_11: {
+            if (hot_image_data_.sDrawString == pStrImage && !hot_image_data_.empty()) return;
+            hot_image_data_.clear();
+            hot_image_data_.sDrawString = pStrImage;
+            Direct3DRender::LoadImage(hot_image_data_);
+        }
+        default:
+            break;
+        }
+
+        Invalidate();
 	}
 
 	LPCTSTR CButtonUI::GetPushedImage()
 	{
-		return m_diPushed.sDrawString;
+        if (mode_ == DrawMode_GDI) {
+            return m_diPushed.sDrawString;
+        }
+        else {
+            return pushed_image_data_.sDrawString;
+        }
 	}
 
 	void CButtonUI::SetPushedImage(LPCTSTR pStrImage)
 	{
-		if( m_diPushed.sDrawString == pStrImage && m_diPushed.pImageInfo != NULL ) return;
-		m_diPushed.Clear();
-		m_diPushed.sDrawString = pStrImage;
-		Invalidate();
+		if (mode_ == DrawMode_GDI) {
+            if (m_diPushed.sDrawString == pStrImage && m_diPushed.pImageInfo != NULL) return;
+            m_diPushed.Clear();
+            m_diPushed.sDrawString = pStrImage;
+		}
+        else {
+            if (pushed_image_data_.sDrawString == pStrImage && !pushed_image_data_.empty()) return;
+            pushed_image_data_.clear();
+            pushed_image_data_.sDrawString = pStrImage;
+            Direct3DRender::LoadImage(pushed_image_data_);
+        }
+
+        Invalidate();
 	}
 
 	LPCTSTR CButtonUI::GetFocusedImage()
@@ -258,27 +314,55 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetDisabledImage()
 	{
-		return m_diDisabled.sDrawString;
+        if (mode_ == DrawMode_GDI) {
+            return m_diDisabled.sDrawString;
+        }
+        else {
+            return disabled_image_data_.sDrawString;
+        }
 	}
 
 	void CButtonUI::SetDisabledImage(LPCTSTR pStrImage)
 	{
-		if( m_diDisabled.sDrawString == pStrImage && m_diDisabled.pImageInfo != NULL ) return;
-		m_diDisabled.Clear();
-		m_diDisabled.sDrawString = pStrImage;
-		Invalidate();
+        if (mode_ == DrawMode_GDI) {
+            if (m_diDisabled.sDrawString == pStrImage && m_diDisabled.pImageInfo != NULL) return;
+            m_diDisabled.Clear();
+            m_diDisabled.sDrawString = pStrImage;
+        }
+        else {
+            if (disabled_image_data_.sDrawString == pStrImage && !disabled_image_data_.empty()) return;
+            disabled_image_data_.clear();
+            disabled_image_data_.sDrawString = pStrImage;
+            Direct3DRender::LoadImage(disabled_image_data_);
+        }
+
+        Invalidate();
 	}
 
 	LPCTSTR CButtonUI::GetForeImage()
 	{
-		return m_diFore.sDrawString;
+        if (mode_ == DrawMode_GDI) {
+            return m_diFore.sDrawString;
+        }
+        else {
+            return fore_image_data_.sDrawString;
+        }
 	}
 
 	void CButtonUI::SetForeImage( LPCTSTR pStrImage )
 	{
-		if( m_diFore.sDrawString == pStrImage && m_diFore.pImageInfo != NULL ) return;
-		m_diFore.Clear();
-		m_diFore.sDrawString = pStrImage;
+        if (mode_ == DrawMode_GDI) {
+            if (m_diFore.sDrawString == pStrImage && m_diFore.pImageInfo != NULL) return;
+            m_diFore.Clear();
+            m_diFore.sDrawString = pStrImage;
+        }
+        else {
+            if (fore_image_data_.sDrawString == pStrImage && !fore_image_data_.empty()) return;
+            fore_image_data_.clear();
+            fore_image_data_.sDrawString = pStrImage;
+            Direct3DRender::LoadImage(fore_image_data_);
+        }
+
 		Invalidate();
 	}
 
@@ -506,4 +590,49 @@ namespace DuiLib
 Label_ForeImage:
 		DrawImage(hDC, m_diFore);
 	}
+
+    void CButtonUI::PaintStatusImage() {
+        if (IsFocused()) m_uButtonState |= UISTATE_FOCUSED;
+        else m_uButtonState &= ~UISTATE_FOCUSED;
+        if (!IsEnabled()) m_uButtonState |= UISTATE_DISABLED;
+        else m_uButtonState &= ~UISTATE_DISABLED;
+
+        if ((m_uButtonState & UISTATE_DISABLED) != 0) {
+            //if (DrawImage(hDC, m_diDisabled)) goto Label_ForeImage;
+        }
+        else if ((m_uButtonState & UISTATE_PUSHED) != 0) {
+            if (!DrawImage(pushed_image_data_)) {
+                DrawImage(normal_image_data_);
+            }
+        }
+        else if ((m_uButtonState & UISTATE_HOT) != 0) {
+            if (!DrawImage(hot_image_data_)) {
+                DrawImage(normal_image_data_);
+            }
+
+
+            //if (DrawImage(hDC, m_diHotFore)) return;
+            //else if (m_dwHotBkColor != 0) {
+            //    CRenderEngine::DrawColor(hDC, m_rcPaint, GetAdjustColor(m_dwHotBkColor));
+            //    return;
+            //}
+            //else goto Label_ForeImage;
+
+            //不绘制hot fore image(用不到的属性)，直接绘制fore image
+        }
+        else if ((m_uButtonState & UISTATE_FOCUSED) != 0) {
+            //if (DrawImage(hDC, m_diFocused)) goto Label_ForeImage;
+            if (!DrawImage(focused_image_data_)) {
+                DrawImage(normal_image_data_);
+            }
+        }
+        else {
+            DrawImage(normal_image_data_);
+        }
+
+        //最后绘制fore image
+        DrawImage(fore_image_data_);
+
+        return;
+    }
 }

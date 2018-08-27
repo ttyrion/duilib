@@ -3775,8 +3775,8 @@ void CPaintManagerUI::DrawBkColor(const RECT&rect, DWORD color) {
     d3dengine_.FillColor(rect, color);
 }
 
-bool CPaintManagerUI::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image) {
-    return d3dengine_.DrawImage(rcItem,rcPaint,image);
+bool CPaintManagerUI::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image, const DWORD bkcolor) {
+    return d3dengine_.DrawImage(rcItem,rcPaint,image, bkcolor);
 }
 
 void CPaintManagerUI::DrawStatusImage() {

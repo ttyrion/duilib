@@ -5,11 +5,15 @@
         <HorizontalLayout name="titlebar" height="40" bkcolor="#FF666666" bordercolor="#FF00FF00" bordersize="1">
             <Button name="menu" text="菜单" font="1" align="right-center" width="80" bkcolor="#FF000000" textcolor="#FFFFFFFF"/>
             <Control />
+            <Button name="sign" width="75" height="22" padding="0,8,10,8"
+                    normalimage="file='sign.png' source='0,0,75,22'"
+                    hotimage="file='sign.png' source='75,0,150,22'"
+                    pushedimage="file='sign.png' source='150,0,225,22'"
+            />
         </HorizontalLayout>
-        <HorizontalLayout name="client" bkcolor="#FFFF0000" bordercolor="#FF0000FF" bordersize="1">
-            <Container name="image" />
-            <Control width="20" />
-            <VerticalLayout name="index" width="300"/>
+        <HorizontalLayout name="client" bkcolor="#FF00FF00" bordercolor="#FF0000FF" bordersize="1">
+            <Container name="image" width="1300" bordercolor="#FFCCCCCC" bordersize="1"/>
+            <VerticalLayout name="index"  bkcolor="#FFFF0000"/>
         </HorizontalLayout>
     </VerticalLayout>
 </Window>

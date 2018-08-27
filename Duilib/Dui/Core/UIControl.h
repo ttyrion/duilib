@@ -45,6 +45,7 @@ public:
 
     // 图形相关
     DWORD GetBkColor() const;
+    DWORD GetBlendBkColor() const;  //获取控件背景色，或者父控件背景色，用于背景图片alpha混合
     void SetBkColor(DWORD dwBackColor);
     DWORD GetBkColor2() const;
     void SetBkColor2(DWORD dwBackColor);

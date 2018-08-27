@@ -642,20 +642,13 @@ namespace DuiLib {
         return DrawRect(rect, color);
     }
 
-    bool Direct3DRender::DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image) {
+    bool Direct3DRender::DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image, const DWORD bkcolor) {
         if (!initialized_) {
             return false;
         }
 
         assert(d3d_device_);
         assert(d3d_immediate_context_);
-
-        if (image.empty()) {
-            bool load = LoadImage(image);
-            if (!load) {
-                return false;
-            }
-        }
 
         RECT rcDest = item_rect;
         //image.dest配置的区域是相对控件的
@@ -677,7 +670,16 @@ namespace DuiLib {
 
         if (!::IntersectRect(&temp_rect, &rcDest, &paint_rect)) {
             return false;
+        }       
+
+        if (image.empty()) {
+            bool load = LoadImage(image);
+            if (!load) {
+                return false;
+            }
         }
+
+        //FillColor(item_rect, bkcolor);
         
         switch (image.bitmap.format) {
         case IMAGE_FORMAT_GRAY: {
@@ -926,7 +928,7 @@ namespace DuiLib {
             d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
             d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
             d3d_immediate_context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+            d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
             d3d_immediate_context_->DrawIndexed(indice.size(), 0, 0);
 
             ReleaseCOMInterface(vertex_buffer);
@@ -1441,14 +1443,7 @@ namespace DuiLib {
             //if (!data) return false;
 
             Direct3DImage::LoadImage(image.sImageName, L"", image.mask, image);
-            if (image.source.left == 0 && image.source.right == 0 && image.source.top == 0 && image.source.bottom == 0) {
-                image.source.right = image.bitmap.width;
-                image.source.bottom = image.bitmap.height;
-            }
         }
-
-        image.source.right > image.bitmap.width ? image.source.right = image.bitmap.width : NULL;
-        image.source.bottom > image.bitmap.height ? image.source.bottom = image.bitmap.height : NULL;
 
         return true;
     }

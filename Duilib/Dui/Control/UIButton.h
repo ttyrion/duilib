@@ -51,6 +51,7 @@ namespace DuiLib
 
 		void PaintText(HDC hDC);
 		void PaintStatusImage(HDC hDC);
+        void PaintStatusImage();
 
 	protected:
 		enum
@@ -75,6 +76,15 @@ namespace DuiLib
 		TDrawInfo m_diPushedFore;
 		TDrawInfo m_diFocused;
 		TDrawInfo m_diDisabled;
+
+        //for d3d rendering
+        ImageData normal_image_data_;
+        ImageData hot_image_data_;
+        ImageData hot_fore_image_data_;
+        ImageData pushed_image_data_;
+        ImageData pushed_fore_image_data_;
+        ImageData focused_image_data_;
+        ImageData disabled_image_data_;
 	};
 
 }	// namespace DuiLib
