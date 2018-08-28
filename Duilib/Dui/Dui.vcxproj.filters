@@ -330,5 +330,11 @@
     <FxCompile Include="Core\shader\RGBATextureVertex.hlsl">
       <Filter>direct3d\shader</Filter>
     </FxCompile>
+    <FxCompile Include="Core\shader\VideoFramePixel.hlsl">
+      <Filter>direct3d\shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\shader\VideoFrameVertex.hlsl">
+      <Filter>direct3d\shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

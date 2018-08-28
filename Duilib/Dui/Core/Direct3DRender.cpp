@@ -16,13 +16,13 @@ namespace DuiLib {
 
 
     Direct3DRender::~Direct3DRender() {
-        //for (auto& plane : texture_planes_) {
-        //    ReleaseCOMInterface(plane);
-        //}
+        for (auto& plane : frame_texture_planes_) {
+            ReleaseCOMInterface(plane);
+        }
 
-        //for (auto& view : texture_resource_views_) {
-        //    ReleaseCOMInterface(view);
-        //}
+        for (auto& view : frame_texture_resource_views_) {
+            ReleaseCOMInterface(view);
+        }
         
         for (auto format: text_formats_) {
             ReleaseCOMInterface(format.second);
@@ -615,6 +615,64 @@ namespace DuiLib {
         return true;
     }
 
+    bool Direct3DRender::CreateFrameTextureResource(const VideoFrame& frame) {
+        CD3D11_TEXTURE2D_DESC tex_desc(DXGI_FORMAT_R8_UNORM, frame.width, frame.height);
+        tex_desc.MipLevels = 1;
+        HRESULT hr = d3d_device_->CreateTexture2D(&tex_desc, NULL, &frame_texture_planes_[0]);
+        if (FAILED(hr)) {
+            frame_texture_planes_[0] = NULL;
+            return false;
+        }
+
+        tex_desc.Width = frame.width / 2;
+        tex_desc.Height = frame.height / 2;
+        hr = d3d_device_->CreateTexture2D(&tex_desc, NULL, &frame_texture_planes_[1]);
+        if (FAILED(hr)) {
+            frame_texture_planes_[1] = NULL;
+            return false;
+        }
+
+        hr = d3d_device_->CreateTexture2D(&tex_desc, NULL, &frame_texture_planes_[2]);
+        if (FAILED(hr)) {
+            frame_texture_planes_[2] = NULL;
+            return false;
+        }
+        CD3D11_SHADER_RESOURCE_VIEW_DESC resource_view_desc(D3D11_SRV_DIMENSION_TEXTURE2D);
+        for (int i = 0; i < 3; ++i) {
+            //给每一个纹理资源都创建一个纹理视图，这样资源才能被GPU访问: 真正被绑定到渲染管线的是资源视图，而不是资源
+            hr = d3d_device_->CreateShaderResourceView(frame_texture_planes_[i], &resource_view_desc, &frame_texture_resource_views_[i]);
+            if (FAILED(hr)) {
+                frame_texture_resource_views_[i] = NULL;
+                return false;
+            }
+        }
+
+        frame_width_ = frame.width;
+        frame_height_ = frame.height;
+
+        return true;
+    }
+
+    bool Direct3DRender::UpdateFrameTextureResource(const VideoFrame& frame) {
+        if (frame_width_ != frame.width || frame_height_ != frame.height) {
+            for (int i = 0; i < sizeof(frame_texture_planes_) / sizeof(ID3D11Texture2D*); ++i) {
+                ReleaseCOMInterface(frame_texture_planes_[i]);
+                ReleaseCOMInterface(frame_texture_resource_views_[i]);
+            }
+
+            if (!CreateFrameTextureResource(frame)) {
+                return false;
+            }
+        }
+
+        d3d_immediate_context_->UpdateSubresource(frame_texture_planes_[0], 0, NULL, frame.yuv[0].data(), frame.width, 0);
+        d3d_immediate_context_->UpdateSubresource(frame_texture_planes_[1], 0, NULL, frame.yuv[1].data(), frame.width / 2, 0);
+        d3d_immediate_context_->UpdateSubresource(frame_texture_planes_[2], 0, NULL, frame.yuv[2].data(), frame.width / 2, 0);
+        d3d_immediate_context_->PSSetShaderResources(0, 3, frame_texture_resource_views_);
+
+        return true;
+    }
+
     bool Direct3DRender::SetLinearSamplerState() {
         // Create the sample state
         if (!linear_sampler_state_) {
@@ -663,12 +721,12 @@ namespace DuiLib {
             rcDest.bottom > item_rect.bottom ? rcDest.bottom = item_rect.bottom : NULL;
         }
 
-        RECT temp_rect = { 0 };
-        if (!::IntersectRect(&temp_rect, &rcDest, &item_rect)) {
+        RECT intersect_rect = { 0 };
+        if (!::IntersectRect(&intersect_rect, &rcDest, &item_rect)) {
             return false;
         }
 
-        if (!::IntersectRect(&temp_rect, &rcDest, &paint_rect)) {
+        if (!::IntersectRect(&intersect_rect, &rcDest, &paint_rect)) {
             return false;
         }       
 
@@ -735,7 +793,29 @@ namespace DuiLib {
                 }
             };
 
-            RECT temp_rect = { 0 };
+            auto do_real_paint = [this, generate_vertice](const RECT& paint_rect, const RECT& draw_dest, const RECT& picture_source) {
+                RECT real_paint_rect = { 0 };
+                if (!::IntersectRect(&real_paint_rect, &paint_rect, &draw_dest)) {
+                    return;
+                }
+
+                RECT real_source_rect = { 0 };
+                UINT draw_dest_width = draw_dest.right - draw_dest.left;
+                UINT draw_dest_height = draw_dest.bottom - draw_dest.top;
+                UINT picture_source_widht = picture_source.right - picture_source.left;
+                UINT picture_source_height = picture_source.bottom - picture_source.top;
+                real_source_rect.left = (real_paint_rect.left - draw_dest.left) / draw_dest_width * picture_source_widht
+                    + picture_source.left;
+                real_source_rect.top = (real_paint_rect.top - draw_dest.top) / draw_dest_height * picture_source_height
+                    + picture_source.top;
+                real_source_rect.right = picture_source.right
+                    - (draw_dest.right - real_paint_rect.right) / draw_dest_width * picture_source_widht;
+                real_source_rect.bottom = picture_source.bottom
+                    - (draw_dest.bottom - real_paint_rect.bottom) / draw_dest_height * picture_source_height;
+
+                generate_vertice(real_paint_rect, real_source_rect);
+            };
+
             RECT draw_dest_rect = { 0 };
             RECT picture_source_rect = { 0 };
 
@@ -751,9 +831,7 @@ namespace DuiLib {
             picture_source_rect.right = image.source.right - image.corner.right;
             picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
 
-            if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                generate_vertice(draw_dest_rect, picture_source_rect);
-            }
+            do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
 
             // left-top corner
             if (image.corner.left > 0 && image.corner.top > 0) {
@@ -767,9 +845,7 @@ namespace DuiLib {
                 picture_source_rect.right = image.source.left + image.corner.left;
                 picture_source_rect.bottom = image.source.top + image.corner.top;
 
-                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    generate_vertice(draw_dest_rect, picture_source_rect);
-                }
+                do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
             }
 
             // top
@@ -784,9 +860,7 @@ namespace DuiLib {
                 picture_source_rect.right = image.source.right - image.corner.right;
                 picture_source_rect.bottom = image.source.top + image.corner.top;
 
-                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    generate_vertice(draw_dest_rect, picture_source_rect);
-                }
+                do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
             }
 
             // right-top corner
@@ -801,9 +875,7 @@ namespace DuiLib {
                 picture_source_rect.right = image.source.right;
                 picture_source_rect.bottom = image.source.top + image.corner.top;
 
-                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    generate_vertice(draw_dest_rect, picture_source_rect);
-                }
+                do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
             }
 
             // left
@@ -818,9 +890,7 @@ namespace DuiLib {
                 picture_source_rect.right = image.source.left + image.corner.left;
                 picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
 
-                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    generate_vertice(draw_dest_rect, picture_source_rect);
-                }
+                do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
             }
 
             // right
@@ -835,9 +905,7 @@ namespace DuiLib {
                 picture_source_rect.right = image.source.right;
                 picture_source_rect.bottom = image.source.bottom - image.corner.bottom;
 
-                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    generate_vertice(draw_dest_rect, picture_source_rect);
-                }
+                do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
             }
 
             // left-bottom
@@ -851,10 +919,8 @@ namespace DuiLib {
                 picture_source_rect.top = image.source.bottom - image.corner.bottom;
                 picture_source_rect.right = image.source.left + image.corner.left;
                 picture_source_rect.bottom = image.source.bottom;
-
-                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    generate_vertice(draw_dest_rect, picture_source_rect);
-                }
+                
+                do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
             }
 
             // bottom
@@ -869,9 +935,7 @@ namespace DuiLib {
                 picture_source_rect.right = image.source.right - image.corner.right;
                 picture_source_rect.bottom = image.source.bottom;
 
-                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    generate_vertice(draw_dest_rect, picture_source_rect);
-                }
+                do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
             }
 
             // right-bottom
@@ -886,9 +950,7 @@ namespace DuiLib {
                 picture_source_rect.right = image.source.right;
                 picture_source_rect.bottom = image.source.bottom;
 
-                if (::IntersectRect(&temp_rect, &paint_rect, &draw_dest_rect)) {
-                    generate_vertice(draw_dest_rect, picture_source_rect);
-                }
+                do_real_paint(paint_rect, draw_dest_rect, picture_source_rect);
             }
 
             D3D11_BUFFER_DESC vertex_buffer_desc;
@@ -933,6 +995,90 @@ namespace DuiLib {
 
             ReleaseCOMInterface(vertex_buffer);
         }
+
+        return true;
+    }
+
+    bool Direct3DRender::DrawVideoFrame(const RECT& item_rect, const RECT& paint_rect, const VideoFrame& frame) {
+        if (!initialized_) {
+            return false;
+        }
+
+        assert(d3d_device_);
+        assert(d3d_immediate_context_);
+
+        RECT temp_rect = { 0 };
+        if (!::IntersectRect(&temp_rect, &item_rect, &paint_rect)) {
+            return false;
+        }
+
+        if (frame.empty()) {
+            return false;
+        }
+
+        if (!IASetTextureLayout("vfv.dll", "vfp.dll")) {
+            return false;
+        }
+
+        SetLinearSamplerState();
+        UpdateFrameTextureResource(frame);
+
+        TEXTURE_VERTEX vertice[] = {
+            XMFLOAT3(MapScreenX(temp_rect.left, width_),  MapScreenY(temp_rect.top, height_), 0.0f), XMFLOAT2(0.0f,0.0f), //left-top
+
+            XMFLOAT3(MapScreenX(temp_rect.right, width_), MapScreenY(temp_rect.top, height_), 0.0f), XMFLOAT2(1.0f,0.0f), //right-top
+
+            XMFLOAT3(MapScreenX(temp_rect.right, width_), MapScreenY(temp_rect.bottom, height_), 0.0f), XMFLOAT2(1.0f,1.0f), //right-bottom
+
+            XMFLOAT3(MapScreenX(temp_rect.left, width_),  MapScreenY(temp_rect.bottom, height_), 0.0f), XMFLOAT2(0.0f,1.0f) //left-bottom
+        };
+
+        WORD indice[] = {
+            0, 1, 2,
+            0, 2, 3
+        };
+
+        D3D11_BUFFER_DESC vertex_buffer_desc;
+        vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        vertex_buffer_desc.ByteWidth = sizeof(vertice);  //size of the buffer
+        vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
+        vertex_buffer_desc.CPUAccessFlags = 0;
+        vertex_buffer_desc.MiscFlags = 0;
+        vertex_buffer_desc.StructureByteStride = 0;
+        //or we can use Map and UnMap
+        D3D11_SUBRESOURCE_DATA vertex_data;
+        vertex_data.pSysMem = vertice;
+        vertex_data.SysMemPitch = 0;
+        vertex_data.SysMemSlicePitch = 0;
+        ID3D11Buffer *vertex_buffer = NULL;
+        HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &vertex_buffer);
+        Direct3DFailedDebugMsgBox(hr, false, L"create color vertex buffer failed.");
+
+
+        D3D11_BUFFER_DESC index_buffer_desc;
+        index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        index_buffer_desc.ByteWidth = sizeof(indice);
+        index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        index_buffer_desc.CPUAccessFlags = 0;
+        index_buffer_desc.MiscFlags = 0;
+        index_buffer_desc.StructureByteStride = 0;
+        D3D11_SUBRESOURCE_DATA index_data;
+        index_data.pSysMem = indice;
+        index_data.SysMemPitch = 0;
+        index_data.SysMemSlicePitch = 0;
+        ID3D11Buffer* index_buffer = NULL;
+        hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &index_buffer);
+        Direct3DFailedDebugMsgBox(hr, false, L"create color index buffer failed.");
+
+        unsigned int stride = sizeof(TEXTURE_VERTEX);
+        unsigned int offset = 0;
+        d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
+        d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
+        d3d_immediate_context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        //d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
+        d3d_immediate_context_->DrawIndexed(sizeof(indice) / sizeof(WORD), 0, 0);
+
+        ReleaseCOMInterface(vertex_buffer);
 
         return true;
     }

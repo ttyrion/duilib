@@ -34,5 +34,6 @@ private:
     CButtonUI* menu_btn_ = nullptr;
     CContainerUI* image_ = nullptr;
     CVerticalLayoutUI* index_ = nullptr;
+    CHorizontalLayoutUI* video_ = nullptr;
 };
 

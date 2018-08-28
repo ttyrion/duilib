@@ -55,6 +55,7 @@ namespace DuiLib {
 
         bool FillColor(const RECT& rect, DWORD color);
         bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image, const DWORD bkcolor);
+        bool DrawVideoFrame(const RECT& item_rect, const RECT& paint_rect, const VideoFrame& frame);
         void DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         void DrawText2D(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         bool DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color);
@@ -72,6 +73,8 @@ namespace DuiLib {
         
         bool CreateTextureResource(const UINT width, const UINT height, IMAGE_FORMAT format);
         bool UpdateTextureResource(const DuiBitmap& bitmap);
+        bool CreateFrameTextureResource(const VideoFrame& frame);
+        bool UpdateFrameTextureResource(const VideoFrame& frame);
         bool SetLinearSamplerState();
         
         bool DrawColorVertex(const std::vector<COLOR_VERTEX>& vertice, const std::vector<WORD>& indice, const D3D11_PRIMITIVE_TOPOLOGY topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -104,9 +107,11 @@ namespace DuiLib {
         //ID3D11SamplerState* sampler_state_ = NULL;
         ID3D11BlendState* text_blend_state_ = NULL;
 
-        //用四层文理资源分别访问图片的r,g,b,a 数据，相应地，着色器中也要定义四个纹理资源
-        //ID3D11Texture2D* texture_planes_[4] = { NULL };
-        //ID3D11ShaderResourceView* texture_resource_views_[4] = { NULL };
+        //用三层文理资源分别访问一帧视频的yuv数据
+        UINT frame_width_ = 0;
+        UINT frame_height_ = 0;
+        ID3D11Texture2D* frame_texture_planes_[3] = { NULL };
+        ID3D11ShaderResourceView* frame_texture_resource_views_[3] = { NULL };
         //改用一个纹理资源，处理多种图片格式
         ID3D11Texture2D* texture_planes_ = NULL;
         ID3D11ShaderResourceView* texture_resource_views_ = NULL;

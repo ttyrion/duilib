@@ -5,15 +5,28 @@
         <HorizontalLayout name="titlebar" height="40" bkcolor="#FF666666" bordercolor="#FF00FF00" bordersize="1">
             <Button name="menu" text="菜单" font="1" align="right-center" width="80" bkcolor="#FF000000" textcolor="#FFFFFFFF"/>
             <Control />
+            
             <Button name="sign" width="75" height="22" padding="0,8,10,8"
                     normalimage="file='sign.png' source='0,0,75,22'"
                     hotimage="file='sign.png' source='75,0,150,22'"
                     pushedimage="file='sign.png' source='150,0,225,22'"
             />
         </HorizontalLayout>
-        <HorizontalLayout name="client" bkcolor="#FF00FF00" bordercolor="#FF0000FF" bordersize="1">
-            <Container name="image" width="1300" bordercolor="#FFCCCCCC" bordersize="1"/>
-            <VerticalLayout name="index"  bkcolor="#FFFF0000"/>
+        <HorizontalLayout name="image" bkcolor="#FF00FF00" bordercolor="#FF0000FF" bordersize="1">
+            <HorizontalLayout name="video" width="800" height="360" padding="0,100,10,8" bordercolor="#FFCCCCCC" bordersize="1">
+                <Button name="sign" width="75" height="22" padding="100,100,10,8"
+                    normalimage="file='sign.png' source='0,0,75,22'"
+                    hotimage="file='sign.png' source='75,0,150,22'"
+                    pushedimage="file='sign.png' source='150,0,225,22'"
+                />
+                <CheckBox width="45" height="24" padding="0,100,10,8" bordercolor="#FFFF0000" bordersize="1"
+                      normalimage="checkbtn_1.png"
+                      selectedimage="checkbtn_2.png"
+                      selected="true"
+                />
+            </HorizontalLayout>
+            
+            <Control height="360" bkimage="bk.png"/>
         </HorizontalLayout>
     </VerticalLayout>
 </Window>

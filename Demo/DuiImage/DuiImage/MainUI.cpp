@@ -2,8 +2,11 @@
 #include "MainUI.h"
 #include "define/msg_define.h"
 #include <Shlwapi.h>
+#include <fstream>
 #include "define/const_define.h"
+#include "Dui/UITypedef.h"
 
+#define TIMER_VIDEO_FRAME 1024
 
 CMainUI::CMainUI() {
 
@@ -40,6 +43,42 @@ LRESULT CMainUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         else if (wParam == 0x32 && (lParam & (1 << 29))) {
             ::InvalidateRect(m_hWnd, NULL, FALSE);
         }
+        break;
+    case WM_TIMER:
+        if (wParam == TIMER_VIDEO_FRAME) {
+            ::KillTimer(m_hWnd, TIMER_VIDEO_FRAME);
+            std::ifstream ifs;
+            ifs.open("frame.bin", std::ios::binary | std::ios::in);
+            if (ifs.is_open()) {
+                VideoFrame frame;
+                frame.width = 896;
+                frame.height = 360;
+
+                //frame.linesize[0] = frame_width;
+                //frame.linesize[1] = 448;
+                //frame.linesize[2] = 448;
+
+                const UINT frame_height = 360;
+
+                int count_of_y = frame.width * frame_height;
+                frame.yuv[0].resize(count_of_y, 0);
+                ifs.read(frame.yuv[0].data(), count_of_y);
+
+                frame.yuv[1].resize(count_of_y / 4, 0);
+                ifs.read(frame.yuv[1].data(), count_of_y / 4);
+
+                frame.yuv[2].resize(count_of_y / 4, 0);
+                ifs.read(frame.yuv[2].data(), count_of_y / 4);
+
+                ifs.close();
+
+                if (video_) {
+                    video_->SetVideoFrame(frame);
+                }
+            }
+        }
+        break;
+    default:
         break;
     }
     
@@ -91,6 +130,8 @@ LRESULT CMainUI::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled
         pntm_.AddNotifier(this);
         SetSubControls();
     }
+
+    ::SetTimer(m_hWnd, TIMER_VIDEO_FRAME, 1000, NULL);
     
     return 0;
 }
@@ -129,6 +170,7 @@ void CMainUI::SetSubControls() {
     }
     image_ = static_cast<CContainerUI*>(pntm_.FindControl(L"image"));
     index_ = static_cast<CVerticalLayoutUI*>(pntm_.FindControl(L"index"));
+    video_ = static_cast<CHorizontalLayoutUI*>(pntm_.FindControl(L"video"));
 }
 
 LRESULT CMainUI::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled) {
@@ -158,7 +200,7 @@ LRESULT CMainUI::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &hand
 
     CControlUI* ctrl = pntm_.FindSubControlByPoint(NULL, pt);
     std::wstring ctrl_class_name = ctrl->GetClass();
-    if (::PtInRect(&caption, pt) && ctrl_class_name != DUI_CTR_BUTTON) {
+    if (::PtInRect(&caption, pt) && ctrl_class_name != DUI_CTR_BUTTON && ctrl_class_name != DUI_CTR_CHECKBOX) {
         return HTCAPTION;  //return HTCAPTION to make system treat this area as a titlebar
     }
     else return HTCLIENT;

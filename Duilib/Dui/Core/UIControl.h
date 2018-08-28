@@ -61,6 +61,7 @@ public:
     void SetBorderRound(SIZE cxyRound);
     bool DrawImage(HDC hDC, TDrawInfo& drawInfo);
     bool DrawImage(ImageData& image);
+    bool DrawVideoFrame(const VideoFrame& frame);
 
 	//±ß¿òÏà¹Ø
 	DWORD GetBorderColor() const;
@@ -178,8 +179,11 @@ public:
     virtual void PaintBkColor();
     virtual void PaintBkImage();
     virtual void PaintStatusImage();
+    virtual void PaintVideoFrame();
     virtual void PaintText();
     virtual void PaintBorder();
+    void SetVideoFrame(const VideoFrame& frame);
+    void ClearVideoFrame();
 
 
     virtual void DoPostPaint(HDC hDC, const RECT& rcPaint);
@@ -239,6 +243,7 @@ protected:
 	TDrawInfo m_diFore;
 
     //for d3d rendering
+    VideoFrame frame_;
     ImageData back_image_data_;
     ImageData fore_image_data_;
 

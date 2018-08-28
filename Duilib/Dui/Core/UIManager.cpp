@@ -3779,6 +3779,10 @@ bool CPaintManagerUI::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageDa
     return d3dengine_.DrawImage(rcItem,rcPaint,image, bkcolor);
 }
 
+bool CPaintManagerUI::DrawVideoFrame(const RECT& rcItem, const RECT& rcPaint, const VideoFrame& frame) {
+    return d3dengine_.DrawVideoFrame(rcItem, rcPaint, frame);
+}
+
 void CPaintManagerUI::DrawStatusImage() {
     
 }

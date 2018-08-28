@@ -339,6 +339,14 @@ bool CControlUI::DrawImage(ImageData& image) {
     return false;
 }
 
+bool CControlUI::DrawVideoFrame(const VideoFrame& frame) {
+    if (m_pManager) {
+        return m_pManager->DrawVideoFrame(m_rcItem, m_rcItem, frame);
+    }
+
+    return false;
+}
+
 const RECT& CControlUI::GetPos() const
 {
     return m_rcItem;
@@ -1168,11 +1176,17 @@ bool CControlUI::Paint(const RECT& rcPaint, CControlUI* pStopControl) {
     //不在paint区域的控件，跳过绘制
     //另外，m_rcPaint会保存绘制区域
     if (!::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem)) return true;
+
+    //如果控件的视频帧不空，每次Paint都重绘控件全部区域，这样子控件才会显示在视频帧画面之上
+    if (!frame_.empty()) {
+        m_rcPaint = m_rcItem;
+    }
+
     if (OnPaint) {
         if (!OnPaint(this)) return true;
     }
 
-    if (!DoPaint(rcPaint, pStopControl)) {
+    if (!DoPaint(m_rcPaint, pStopControl)) {
         return false;
     }
 
@@ -1220,6 +1234,9 @@ bool CControlUI::DoPaint(const RECT& rcPaint, CControlUI* pStopControl) {
         PaintBkColor();
         PaintBkImage();
         PaintStatusImage();
+        if (EqualRect(&m_rcPaint, &m_rcItem)) {
+            PaintVideoFrame();
+        }        
         PaintText();
         PaintBorder();
     }
@@ -1285,6 +1302,11 @@ void CControlUI::PaintStatusImage(HDC hDC)
 }
 
 void CControlUI::PaintStatusImage() {
+    return;
+}
+
+void CControlUI::PaintVideoFrame() {
+    DrawVideoFrame(frame_);
     return;
 }
 
@@ -1410,6 +1432,15 @@ void CControlUI::SetBorderStyle( int nStyle )
 {
 	m_nBorderStyle = nStyle;
 	Invalidate();
+}
+
+void CControlUI::SetVideoFrame(const VideoFrame& frame) {
+    frame_ = frame;
+    Invalidate();
+}
+
+void CControlUI::ClearVideoFrame() {
+    frame_.clear();
 }
 
 } // namespace DuiLib
