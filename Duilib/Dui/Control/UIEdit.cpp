@@ -665,7 +665,36 @@ namespace DuiLib
 		else {
 			CRenderEngine::DrawText(hDC, m_pManager, rc, sText, m_dwDisabledTextColor, \
 				m_iFont, DT_SINGLELINE | m_uTextStyle);
-
 		}
 	}
+
+    void CEditUI::PaintText() {
+        if (m_dwTextColor == 0) m_dwTextColor = m_pManager->GetDefaultFontColor();
+        if (m_dwDisabledTextColor == 0) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+
+        if (m_sText.IsEmpty() || !m_pManager) return;
+
+        CDuiString sText = m_sText;
+        if (m_bPasswordMode) {
+            sText.Empty();
+            LPCTSTR p = m_sText.GetData();
+            while (*p != _T('\0')) {
+                sText += m_cPasswordChar;
+                p = ::CharNext(p);
+            }
+        }
+
+        RECT rc = m_rcItem;
+        rc.left += m_rcTextPadding.left;
+        rc.right -= m_rcTextPadding.right;
+        rc.top += m_rcTextPadding.top;
+        rc.bottom -= m_rcTextPadding.bottom;
+        if (IsEnabled()) {
+            m_pManager->DrawText(rc,sText,m_iFont, m_dwTextColor, DT_SINGLELINE | m_uTextStyle);
+
+        }
+        else {
+            m_pManager->DrawText(rc, sText, m_iFont, m_dwDisabledTextColor, DT_SINGLELINE | m_uTextStyle);
+        }
+    }
 }

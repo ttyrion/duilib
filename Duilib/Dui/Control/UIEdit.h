@@ -61,6 +61,8 @@ namespace DuiLib
 		void PaintStatusImage(HDC hDC);
 		void PaintText(HDC hDC);
 
+        void PaintText();
+
 	protected:
 		CEditWnd* m_pWindow;
 
