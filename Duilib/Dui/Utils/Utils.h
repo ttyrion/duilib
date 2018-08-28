@@ -91,6 +91,7 @@ namespace DuiLib
         bool IsEmpty() const;
         TCHAR GetAt(int nIndex) const;
         void Append(LPCTSTR pstr);
+        void Append(TCHAR ch, UINT n);
         void Assign(LPCTSTR pstr, int nLength = -1);
         LPCTSTR GetData() const;
 

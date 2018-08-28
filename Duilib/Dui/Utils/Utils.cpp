@@ -1,6 +1,13 @@
 #include "stdafx.h"
 #include "Utils.h"
 
+
+#ifdef UNICODE
+#define _tmemset wmemset
+#else
+#define _tmemset memset
+#endif
+
 namespace DuiLib
 {
     /////////////////////////////////////////////////////////////////////////////////////
@@ -478,6 +485,29 @@ namespace DuiLib
 			_tcscat(m_szBuffer, pstr);
 		}
 	}
+
+    void CDuiString::Append(TCHAR ch, UINT n) {
+        const int nLastLength = GetLength();
+        int nNewLength = nLastLength + n;
+        if (nNewLength >= MAX_LOCAL_STRING_LEN) {
+            if (m_pstr == m_szBuffer) {
+                m_pstr = static_cast<LPTSTR>(malloc((nNewLength + 1) * sizeof(TCHAR)));
+                _tcscpy(m_pstr, m_szBuffer);
+                _tmemset(m_pstr + nLastLength,ch, n);
+            }
+            else {
+                m_pstr = static_cast<LPTSTR>(realloc(m_pstr, (nNewLength + 1) * sizeof(TCHAR)));
+                _tmemset(m_pstr + nLastLength, ch, n);
+            }
+        }
+        else {
+            if (m_pstr != m_szBuffer) {
+                free(m_pstr);
+                m_pstr = m_szBuffer;
+            }
+            _tmemset(m_pstr + nLastLength, ch, n);
+        }
+    }
 
 	void CDuiString::Assign(LPCTSTR pstr, int cchMax)
 	{

@@ -677,11 +677,7 @@ namespace DuiLib
         CDuiString sText = m_sText;
         if (m_bPasswordMode) {
             sText.Empty();
-            LPCTSTR p = m_sText.GetData();
-            while (*p != _T('\0')) {
-                sText += m_cPasswordChar;
-                p = ::CharNext(p);
-            }
+            sText.Append(L'*', m_sText.GetLength());
         }
 
         RECT rc = m_rcItem;
@@ -691,7 +687,6 @@ namespace DuiLib
         rc.bottom -= m_rcTextPadding.bottom;
         if (IsEnabled()) {
             m_pManager->DrawText(rc,sText,m_iFont, m_dwTextColor, DT_SINGLELINE | m_uTextStyle);
-
         }
         else {
             m_pManager->DrawText(rc, sText, m_iFont, m_dwDisabledTextColor, DT_SINGLELINE | m_uTextStyle);
