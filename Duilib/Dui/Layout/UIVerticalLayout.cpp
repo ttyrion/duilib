@@ -26,6 +26,10 @@ namespace DuiLib
 		else return 0;
 	}
 
+    /*
+        容器控件布局子控件时，不会考虑子控件的子控件的属性。比如说，一个水平布局控件宽度是1000，它有两个子控件A和B。
+        它们都没有配置width属性，但是A的一个子控件配置了width=800。结果是A和B的宽度还是均为500, 不会因为A的子控件width属性而给A的宽度设置为800。
+    */
 	void CVerticalLayoutUI::SetPos(RECT rc, bool bNeedInvalidate)
 	{
 		CControlUI::SetPos(rc, bNeedInvalidate);

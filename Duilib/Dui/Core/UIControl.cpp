@@ -995,6 +995,10 @@ CDuiString CControlUI::GetAttribute(LPCTSTR pstrName)
 
 void CControlUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 {
+    /*
+        pos属性控制float控件的大小和位置，但是对于非float控件，pos只能控制控件的大小。
+        因为非float控件布局时，位置是由父容器控件根据布局计算的，它的 fixed xy 是不起作用的。
+    */
     if( _tcscmp(pstrName, _T("pos")) == 0 ) {
         RECT rcPos = { 0 };
         LPTSTR pstr = NULL;
