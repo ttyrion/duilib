@@ -916,6 +916,7 @@ namespace DuiLib
                         //CRenderClip::UseOldClipBegin(hDC, childClip);
                         //if (!pControl->Paint(hDC, rcPaint, pStopControl)) return false;
                         //CRenderClip::UseOldClipEnd(hDC, childClip);
+                        if (!pControl->Paint(rcPaint, pStopControl)) return false;
                     }
                     else {
                         if (!::IntersectRect(&rcTemp, &rc, &pControl->GetPos())) continue;
