@@ -347,6 +347,7 @@ bool CControlUI::DrawVideoFrame(const VideoFrame& frame) {
     return false;
 }
 
+//不论是否float控件，GetPos()返回的都是控件相对窗口的位置。
 const RECT& CControlUI::GetPos() const
 {
     return m_rcItem;
@@ -382,6 +383,9 @@ void CControlUI::SetPos(RECT rc, bool bNeedInvalidate)
     CDuiRect invalidateRc = m_rcItem;
     if( ::IsRectEmpty(&invalidateRc) ) invalidateRc = rc;
 
+    /*
+        对于float控件，pos属性既控制控件大小，也控制位置。并且，pos被当作相对父容器控件的位置，并非实际在窗口上的位置。
+    */
 	if( m_bFloat ) {
 		CControlUI* pParent = GetParent();
 		if( pParent != NULL ) {
