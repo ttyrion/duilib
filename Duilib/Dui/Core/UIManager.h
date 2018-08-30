@@ -177,6 +177,10 @@ public:
 	virtual LRESULT TranslateAccelerator(MSG *pMsg) = 0;
 };
 
+class DUILIB_API IPreTranslateMessage {
+public:
+    virtual bool PreTranslateMessage(LPMSG lpMsg) = 0;
+};
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -385,6 +389,8 @@ public:
     CControlUI* FindSubControlByClass(CControlUI* pParent, LPCTSTR pstrClass, int iIndex = 0);
     CDuiPtrArray* FindSubControlsByClass(CControlUI* pParent, LPCTSTR pstrClass);
 
+    static void AddExternPreTranslateMessageHandler(IPreTranslateMessage* p);
+    static void RemoveExternPreTranslateMessageHandler(IPreTranslateMessage* p);
     static void MessageLoop();
     static bool TranslateMessage(const LPMSG pMsg);
 	static void Term();
@@ -471,11 +477,10 @@ private:
 	bool m_bUsedVirtualWnd;
 	bool m_bAsyncNotifyPosted;
 
-    //
     CDuiPtrArray m_aNotifiers;
     CDuiPtrArray m_aTimers;
-    CDuiPtrArray m_aPreMessageFilters;
-    CDuiPtrArray m_aMessageFilters;
+    CDuiPtrArray m_aPreMessageFilters; //可以过滤CPaintManagerUI对象管理的窗口的消息，以及子窗口...的消息
+    CDuiPtrArray m_aMessageFilters;    //正常情况下，只能过滤CPaintManagerUI(MessageHandler)对象管理的窗口的消息
     CDuiPtrArray m_aPostPaintControls;
 	CDuiPtrArray m_aNativeWindow;
 	CDuiPtrArray m_aNativeWindowControl;
@@ -506,6 +511,7 @@ private:
     static short m_L;
     static CDuiPtrArray m_aPreMessages;
     static CDuiPtrArray m_aPlugins;
+    static CDuiPtrArray m_aExternPreTranslateMessage;
 
     Direct3DRender d3dengine_;
 

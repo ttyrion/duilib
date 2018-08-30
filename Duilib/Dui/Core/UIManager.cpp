@@ -89,6 +89,7 @@ short CPaintManagerUI::m_S = 100;
 short CPaintManagerUI::m_L = 100;
 CDuiPtrArray CPaintManagerUI::m_aPreMessages;
 CDuiPtrArray CPaintManagerUI::m_aPlugins;
+CDuiPtrArray CPaintManagerUI::m_aExternPreTranslateMessage;
 
 CPaintManagerUI::CPaintManagerUI() :
 m_hWndPaint(NULL),
@@ -667,6 +668,7 @@ void CPaintManagerUI::SetLayeredImage(LPCTSTR pstrImage)
 
 bool CPaintManagerUI::PreMessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& /*lRes*/)
 {
+    //每个CPaintManagerUI实例都可以过滤子窗口，子窗口的子窗口，子窗口的孙子窗口...的消息
     for( int i = 0; i < m_aPreMessageFilters.GetSize(); i++ ) 
     {
         bool bHandled = false;
@@ -1783,6 +1785,23 @@ bool CPaintManagerUI::RemoveNotifier(INotifyUI* pNotifier)
         }
     }
     return false;
+}
+
+void CPaintManagerUI::AddExternPreTranslateMessageHandler(IPreTranslateMessage* p)
+{
+    if (p == NULL || m_aExternPreTranslateMessage.Find(p) != -1) {
+        return;
+    }
+    
+    m_aExternPreTranslateMessage.Add(p);
+}
+
+void CPaintManagerUI::RemoveExternPreTranslateMessageHandler(IPreTranslateMessage* p)
+{
+    if (p == NULL)
+        return;
+
+    m_aExternPreTranslateMessage.Remove(m_aExternPreTranslateMessage.Find(p));
 }
 
 bool CPaintManagerUI::AddPreMessageFilter(IMessageFilterUI* pFilter)
@@ -3310,10 +3329,20 @@ bool CPaintManagerUI::TranslateAccelerator(LPMSG pMsg)
 }
 
 bool CPaintManagerUI::TranslateMessage(const LPMSG pMsg)
-{
-	// Pretranslate Message takes care of system-wide messages, such as
+{  
+    // Pretranslate Message takes care of system-wide messages, such as
 	// tabbing and shortcut key-combos. We'll look for all messages for
 	// each window and any child control attached.
+
+    //Add by tyrion: 一个窗口可以拦截(或不拦截)任意其他窗口的消息
+    //主要应用于子窗口想过滤父窗口的消息的场景，原生CPaintManagerUI是不支持的。
+    for (int i = 0; i < m_aExternPreTranslateMessage.GetSize(); i++) {
+        IPreTranslateMessage* filter = static_cast<IPreTranslateMessage*> (m_aExternPreTranslateMessage[i]);
+        if (filter && filter->PreTranslateMessage(pMsg)) {
+            return true;
+        }
+    }
+
 	UINT uStyle = GetWindowStyle(pMsg->hwnd);
 	UINT uChildRes = uStyle & WS_CHILD;	
 	LRESULT lRes = 0;
@@ -3322,10 +3351,14 @@ bool CPaintManagerUI::TranslateMessage(const LPMSG pMsg)
 		HWND hWndParent = ::GetParent(pMsg->hwnd);
 		//code by redrain 2014.12.3,解决edit和webbrowser按tab无法切换焦点的bug
 		//		for( int i = 0; i < m_aPreMessages.GetSize(); i++ ) 
+
+        //正常情况下，m_aPreMessages包含了所有CPaintManagerUI实例
 		for( int i = m_aPreMessages.GetSize() - 1; i >= 0 ; --i ) 
 		{
 			CPaintManagerUI* pT = static_cast<CPaintManagerUI*>(m_aPreMessages[i]);        
 			HWND hTempParent = hWndParent;
+
+            //即CPaintManagerUI实例的 paint window 的子窗口，孙子窗口...的消息会被该实例过滤处理
 			while(hTempParent)
 			{
 
@@ -3335,10 +3368,6 @@ bool CPaintManagerUI::TranslateMessage(const LPMSG pMsg)
 						return true;
 
 					pT->PreMessageHandler(pMsg->message, pMsg->wParam, pMsg->lParam, lRes);
-					// 					if( pT->PreMessageHandler(pMsg->message, pMsg->wParam, pMsg->lParam, lRes) ) 
-					// 						return true;
-					// 
-					// 					return false;  
 				}
 				hTempParent = GetParent(hTempParent);
 			}
