@@ -637,6 +637,10 @@ Label_ForeImage:
             }
         }
         else if ((m_uButtonState & UISTATE_HOT) != 0) {
+            if (m_dwHotBkColor != 0 && m_pManager) {
+                m_pManager->DrawColor(m_rcPaint, m_dwHotBkColor);
+            }
+
             if (!DrawImage(hot_image_data_)) {
                 DrawImage(normal_image_data_);
             }

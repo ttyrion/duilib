@@ -1,5 +1,9 @@
 #pragma once
 
+/*
+    Core render with Direct3D 11 added by tyrion.
+*/
+
 #pragma comment (lib, "D3D10_1.lib")
 #pragma comment (lib, "DXGI.lib")
 #pragma comment (lib, "D2D1.lib")

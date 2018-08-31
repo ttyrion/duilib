@@ -125,7 +125,9 @@ m_bAsyncNotifyPosted(false),
 m_bForceUseSharedRes(false),
 m_nOpacity(0xFF),
 m_bLayered(false),
-m_bLayeredChanged(false)
+m_bLayeredChanged(false),
+m_Floats(Float_Controls_Count),
+m_VideoItems(Video_Controls_Count)
 {
 	if (m_SharedResInfo.m_DefaultFontInfo.sFontName.IsEmpty())
 	{
@@ -1099,7 +1101,7 @@ bool CPaintManagerUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LR
                 if( pNewHover != m_pEventHover && pNewHover != NULL ) {
                     event.Type = UIEVENT_MOUSEENTER;
                     event.pSender = pNewHover;
-                    pNewHover->Event(event);
+                    pNewHover->Event(event); //会设置控件的hot状态
                     m_pEventHover = pNewHover;
                 }
             }
@@ -3767,7 +3769,7 @@ bool CPaintManagerUI::DoD3DPaint() {
         // Render to screen
         if (m_bLayered && m_diLayered.pImageInfo == NULL) {
             COLORREF* pOffscreenBits = NULL;
-            DrawBkColor(rcPaint, 0x00000000);
+            DrawColor(rcPaint, 0x00000000);
         }
         m_pRoot->Paint(rcPaint, NULL);
 
@@ -3800,7 +3802,7 @@ DrawMode CPaintManagerUI::GetDrawMode() {
     return mode_;
 }
 
-void CPaintManagerUI::DrawBkColor(const RECT&rect, DWORD color) {
+void CPaintManagerUI::DrawColor(const RECT&rect, DWORD color) {
     d3dengine_.FillColor(rect, color);
 }
 
@@ -3810,6 +3812,14 @@ bool CPaintManagerUI::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageDa
 
 bool CPaintManagerUI::DrawVideoFrame(const RECT& rcItem, const RECT& rcPaint, const VideoFrame& frame) {
     return d3dengine_.DrawVideoFrame(rcItem, rcPaint, frame);
+}
+
+CDuiPtrArray& CPaintManagerUI::GetAllFloats() {
+    return m_Floats;
+}
+
+CDuiPtrArray& CPaintManagerUI::GetAllVideos() {
+    return m_VideoItems;
 }
 
 void CPaintManagerUI::DrawStatusImage() {

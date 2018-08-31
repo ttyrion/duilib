@@ -177,6 +177,9 @@
     <ClInclude Include="UITypedef.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="Utils\Tools.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -304,6 +307,9 @@
     </ClCompile>
     <ClCompile Include="Core\FreeTypeFont.cpp">
       <Filter>direct3d</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Tools.cpp">
+      <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -204,6 +204,7 @@
     <ClInclude Include="Utils\downloadmgr.h" />
     <ClInclude Include="Utils\FlashEventHandler.h" />
     <ClInclude Include="Utils\stb_image.h" />
+    <ClInclude Include="Utils\Tools.h" />
     <ClInclude Include="Utils\UIDelegate.h" />
     <ClInclude Include="Utils\Utils.h" />
     <ClInclude Include="Utils\WebBrowserEventHandler.h" />
@@ -269,6 +270,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Utils\Tools.cpp" />
     <ClCompile Include="Utils\UIDelegate.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>

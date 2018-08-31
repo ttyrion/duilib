@@ -282,7 +282,7 @@ Label_ForeImage:
             }
             else if (m_dwSelectedBkColor != 0) {
                 if (m_pManager) {
-                    m_pManager->DrawBkColor(m_rcPaint, m_dwSelectedBkColor);
+                    m_pManager->DrawColor(m_rcPaint, m_dwSelectedBkColor);
                 }
                 draw_fore_image();
                 return;

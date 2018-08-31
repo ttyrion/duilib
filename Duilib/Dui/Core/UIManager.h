@@ -84,7 +84,8 @@ enum EVENTTYPE_UI
 #define UISTATE_READONLY     0x00000020
 #define UISTATE_CAPTURED     0x00000040
 
-
+#define Float_Controls_Count 3 //预设一个窗口内的float控件不超过3个
+#define Video_Controls_Count 3 //预设一个窗口内的视频控件不超过3个
 
 /////////////////////////////////////////////////////////////////////////////////////
 //
@@ -200,6 +201,8 @@ public:
 	void Invalidate();
     void Invalidate(RECT& rcItem);
 
+    CDuiPtrArray& GetAllFloats();
+    CDuiPtrArray& GetAllVideos();
 	LPCTSTR GetName() const;
     HDC GetPaintDC() const;
 	HBITMAP GetPaintOffscreenBitmap();
@@ -400,7 +403,7 @@ public:
 	void UsedVirtualWnd(bool bUsed);
 
     DrawMode GetDrawMode();
-    void DrawBkColor(const RECT&rect, DWORD color);
+    void DrawColor(const RECT&rect, DWORD color);
     bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image, const DWORD bkcolor = 0);
     bool DrawVideoFrame(const RECT& rcItem, const RECT& rcPaint, const VideoFrame& frame);
     void DrawStatusImage();
@@ -491,6 +494,11 @@ private:
     CDuiStringPtrMap m_mNameHash;
 	CDuiStringPtrMap m_mWindowAttrHash;
     CDuiStringPtrMap m_mOptionGroup;
+    CDuiPtrArray m_Floats;
+    CDuiPtrArray m_VideoItems;
+
+    std::vector<CControlUI*> floats_;
+    std::vector<CControlUI*> videos_;
 
     //
 	bool m_bForceUseSharedRes;

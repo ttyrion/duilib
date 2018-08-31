@@ -134,8 +134,9 @@ public:
     virtual void SetKeyboardEnabled(bool bEnable = true);
     virtual bool IsFocused() const;
     virtual void SetFocus();
-    virtual bool IsFloat() const;
-    virtual void SetFloat(bool bFloat = true);
+    void SetFloat(bool bFloat = true);
+    bool IsFloat() const;
+    bool IsRealFloat() const; //控件本身或者父、祖先控件是否float: 判断控件是否会覆盖到其它无父子关系的控件上
 
 	// 自定义(未处理的)属性
 	void AddCustomAttribute(LPCTSTR pstrName, LPCTSTR pstrAttr);
@@ -182,16 +183,18 @@ public:
     virtual void PaintVideoFrame();
     virtual void PaintText();
     virtual void PaintBorder();
+    void PaintIntersectFloats();
     void SetVideoFrame(const VideoFrame& frame);
-    void ClearVideoFrame();
-
+    void SetVideoAttribute(bool video_control);
+    bool GetVideoAttribute();
 
     virtual void DoPostPaint(HDC hDC, const RECT& rcPaint);
 
 	//虚拟窗口参数
 	void SetVirtualWnd(LPCTSTR pstrValue);
 	CDuiString GetVirtualWnd() const;
-
+    
+    
 public:
     CEventSource OnInit;
     CEventSource OnDestroy;
@@ -243,6 +246,7 @@ protected:
 	TDrawInfo m_diFore;
 
     //for d3d rendering
+    bool m_bVideoControl = false;
     VideoFrame frame_;
     ImageData back_image_data_;
     ImageData fore_image_data_;

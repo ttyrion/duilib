@@ -224,8 +224,8 @@ namespace DuiLib
 
 	protected:
 		TITEM** m_aT;
-		int m_nBuckets;
-		int m_nCount;
+		int m_nBuckets; //预设的 TITEM* 元素个数(空间大小)
+		int m_nCount;   //实际存储的 TITEM* 元素个数
 	};
 
 	/////////////////////////////////////////////////////////////////////////////////////

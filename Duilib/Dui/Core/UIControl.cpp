@@ -1,4 +1,5 @@
 ﻿#include "StdAfx.h"
+#include "Utils\Tools.h"
 
 namespace DuiLib {
 
@@ -48,6 +49,29 @@ CControlUI::~CControlUI()
     if( m_pCover != NULL ) {
         m_pCover->Delete();
         m_pCover = NULL;
+    }
+
+    if (!GetVideoAttribute() && m_pManager) {
+        CDuiPtrArray& float_controls = m_pManager->GetAllFloats();
+        const UINT float_controls_count = float_controls.GetSize();
+        for (int i = 0; i < float_controls_count; ++i) {
+            CControlUI* item = static_cast<CControlUI*>(float_controls[i]);
+            if (item == this) {
+                float_controls.Remove(i);
+                break;
+            }
+        }
+    }
+    else if (GetVideoAttribute() && m_pManager) {
+        CDuiPtrArray& video_controls = m_pManager->GetAllVideos();
+        const UINT video_controls_count = video_controls.GetSize();
+        for (int i = 0; i < video_controls_count; ++i) {
+            CControlUI* item = static_cast<CControlUI*>(video_controls[i]);
+            if (item == this) {
+                video_controls.Remove(i);
+                break;
+            }
+        }
     }
 
 	RemoveAllCustomAttribute();
@@ -759,9 +783,42 @@ bool CControlUI::IsFloat() const
     return m_bFloat;
 }
 
+bool CControlUI::IsRealFloat() const
+{
+    bool is_float = m_bFloat;
+    const CControlUI* parent = this->GetParent();
+    while (parent && !is_float) {
+        is_float = parent->IsFloat();
+        parent = parent->GetParent();
+    }
+
+    return is_float;
+}
+
 void CControlUI::SetFloat(bool bFloat)
 {
     if( m_bFloat == bFloat ) return;
+
+    if (!GetVideoAttribute() && m_pManager) {
+        CDuiPtrArray& float_controls = m_pManager->GetAllFloats();
+        const UINT float_controls_count = float_controls.GetSize();
+        bool found = false;
+        for (int i = 0; i < float_controls_count; ++i) {
+            CControlUI* item = static_cast<CControlUI*>(float_controls[i]);
+            if (item == this) {                
+                if (!bFloat) {
+                    float_controls.Remove(i);
+                }
+
+                found = true;
+                break;
+            }
+        }
+
+        if (!found && bFloat) {
+            float_controls.Add(this);
+        }
+    }
 
     m_bFloat = bFloat;
     NeedParentUpdate();
@@ -833,22 +890,56 @@ void CControlUI::Invalidate()
 {
     if( !IsVisible() ) return;
 
-    RECT invalidateRc = m_rcItem;
+    //注意这里调用IsRealFloat(),而不是IsFloat() : 因为这里想知道的是当前控件会不会覆盖在一个视频控件上面
+    bool realfloat_unvideo = IsRealFloat();
+    CControlUI* parent = this->GetParent();
+    bool parent_is_video_ctrl = false;
+    while (parent && !parent_is_video_ctrl) {
+        parent_is_video_ctrl = parent->GetVideoAttribute();
+        parent = parent->GetParent();
+    }
 
-    CControlUI* pParent = this;
-    RECT rcTemp;
-    RECT rcParent;
-    while( pParent = pParent->GetParent() )
-    {
-        rcTemp = invalidateRc;
-        rcParent = pParent->GetPos();
-        if( !::IntersectRect(&invalidateRc, &rcTemp, &rcParent) ) 
-        {
-            return;
+    //这两种控件的绘制都会有对应的视频控件在刷新每一帧时一起处理
+    if (parent_is_video_ctrl) {
+        return;
+    }
+    else if (realfloat_unvideo) {
+        CDuiPtrArray& video_controls = m_pManager->GetAllVideos();
+        const UINT video_controls_count = video_controls.GetSize();
+        for (int i = 0; i < video_controls_count; ++i) {
+            CControlUI* item = static_cast<CControlUI*>(video_controls[i]);
+            if (item && item->IsVisible()) {
+                RECT temp = { 0 };
+                RECT video_area = item->GetPos();
+                //如果控件后面的控件包含视频，则此控件不重绘,此控件的重绘会由相应video control 刷新视频帧时完成：避免闪烁
+                if (OverlapRect(temp, m_rcItem, video_area)) {
+                    return;
+                }
+            }
         }
     }
 
-    if( m_pManager != NULL ) m_pManager->Invalidate(invalidateRc);
+    auto get_real_invalid_rect = [this](const RECT& invalid_rect) -> RECT {
+        RECT real_invalid_rect = invalid_rect;
+        CControlUI* pParent = this;
+        RECT rcTemp;
+        RECT rcParent;
+        while (pParent = pParent->GetParent())
+        {
+            rcTemp = real_invalid_rect;
+            rcParent = pParent->GetPos();
+            if (!::IntersectRect(&real_invalid_rect, &rcTemp, &rcParent)) {
+                return { 0, 0, 0, 0};
+            }
+        }
+
+        return real_invalid_rect;
+    };
+
+    RECT invalidateRc = m_rcItem;
+    invalidateRc = get_real_invalid_rect(invalidateRc);
+    //只重绘位于父容器控件内部的控件区域
+    if (m_pManager != NULL) m_pManager->Invalidate(invalidateRc);
 }
 
 bool CControlUI::IsUpdateNeeded() const
@@ -1242,9 +1333,7 @@ bool CControlUI::DoPaint(const RECT& rcPaint, CControlUI* pStopControl) {
         PaintBkColor();
         PaintBkImage();
         PaintStatusImage();
-        if (EqualRect(&m_rcPaint, &m_rcItem)) {
-            PaintVideoFrame();
-        }        
+        PaintVideoFrame();
         PaintText();
         PaintBorder();
     }
@@ -1291,7 +1380,7 @@ void CControlUI::PaintBkColor()
         //else if (m_dwBackColor >= 0xFF000000) CRenderEngine::DrawColor(hDC, m_rcPaint, GetAdjustColor(m_dwBackColor));
         //else CRenderEngine::DrawColor(hDC, m_rcItem, GetAdjustColor(m_dwBackColor));
 
-        m_pManager->DrawBkColor(m_rcPaint, m_dwBackColor);
+        m_pManager->DrawColor(m_rcPaint, m_dwBackColor);
     }
 }
 
@@ -1314,8 +1403,9 @@ void CControlUI::PaintStatusImage() {
 }
 
 void CControlUI::PaintVideoFrame() {
-    DrawVideoFrame(frame_);
-    return;
+    if (GetVideoAttribute() && m_rcPaint == m_rcItem) {
+        DrawVideoFrame(frame_);
+    }
 }
 
 void CControlUI::PaintText(HDC hDC)
@@ -1426,6 +1516,23 @@ void CControlUI::PaintBorder() {
     }
 }
 
+void CControlUI::PaintIntersectFloats() {
+    //视频控件除了绘制自身，还要负责绘制与自己有重叠的float控件。
+    //非float控件以及不重叠的float控件不会因为视频帧刷新而闪烁，因此不需要特别处理。
+    CDuiPtrArray& float_controls = m_pManager->GetAllFloats();
+    const UINT controls_count = float_controls.GetSize();
+    for (int i = 0; i < controls_count; ++i) {
+        CControlUI* item = static_cast<CControlUI*>(float_controls[i]);
+        if (item) {
+            RECT float_area = item->GetPos();
+            RECT temp = { 0 };
+            if (OverlapRect(temp, float_area, m_rcItem)) {
+                m_pManager->Invalidate(float_area);
+            }
+        }
+    }
+}
+
 void CControlUI::DoPostPaint(HDC hDC, const RECT& rcPaint)
 {
 	if( OnPostPaint ) OnPostPaint(this);
@@ -1442,13 +1549,43 @@ void CControlUI::SetBorderStyle( int nStyle )
 	Invalidate();
 }
 
-void CControlUI::SetVideoFrame(const VideoFrame& frame) {
-    frame_ = frame;
-    Invalidate();
+bool CControlUI::GetVideoAttribute() {
+    return m_bVideoControl;
 }
 
-void CControlUI::ClearVideoFrame() {
-    frame_.clear();
+void CControlUI::SetVideoAttribute(bool video_control) {
+    m_bVideoControl = video_control;
+    if (!m_pManager) {
+        return;
+    }
+
+    CDuiPtrArray& video_controls = m_pManager->GetAllVideos();
+    const UINT controls_count = video_controls.GetSize();
+
+    if (video_control) {
+        for (int i = 0; i < controls_count; ++i) {
+            CControlUI* item = static_cast<CControlUI*>(video_controls[i]);
+            if (item == this) {
+                return;
+            }
+        }
+        video_controls.Add(this);
+    }
+    else {
+        frame_.clear();
+        for (int i = 0; i < controls_count; ++i) {
+            CControlUI* item = static_cast<CControlUI*>(video_controls[i]);
+            if (item == this) {
+                video_controls.Remove(i);
+                break;
+            }
+        }
+    }
+}
+
+void CControlUI::SetVideoFrame(const VideoFrame& frame) {
+    frame_ = frame;
+    Invalidate(); //视频帧绘制时会重绘内部子控件(如果当前视频控件是一个容器的话)
 }
 
 } // namespace DuiLib
