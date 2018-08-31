@@ -2,9 +2,10 @@
 <Window size="1400,700" >
     <Font id= "1" name="微软雅黑" size="14" bold="false"/>
     <Font id= "2" name="宋体" size="20" bold="true"/>
+    <Font id= "3" name="微软雅黑" size="30" bold="true"/>
 	<VerticalLayout name="root" bkcolor="#FF00FF00" bordercolor="#FF000000" bordersize="1">
         <HorizontalLayout name="titlebar" height="40" bkcolor="#FF666666" bordercolor="#FF00FF00" bordersize="1">
-            <Button name="menu" text="菜单" font="1" align="right-center" width="80" bkcolor="#FF000000" textcolor="#FFFFFFFF"/>
+            <Button name="menu_btn" text="菜单" font="1" align="right-center" width="80" bkcolor="#FF000000" textcolor="#FFFFFFFF"/>
             <Control />
             
             <Button name="sign" width="75" height="22" padding="0,8,10,8"
@@ -13,8 +14,8 @@
                     pushedimage="file='sign.png' source='150,0,225,22'"
             />
         </HorizontalLayout>
-        <HorizontalLayout name="image" bkcolor="#FFFFFFFF" bordercolor="#FF0000FF" bordersize="1">
-            <VerticalLayout>
+        <HorizontalLayout name="image" bkcolor="#FFFFFFFF" bordercolor="#FF0000FF" bordersize="3">
+            <VerticalLayout name="video_parent">
                 <HorizontalLayout name="video" width="800" height="360" padding="0,50,10,8" bordercolor="#FFCCCCCC" bordersize="1">
                     <Label text="正在播放视频" font="2" textcolor="#FFFF0000" height="30" padding="10,10,10,0"/>
                     <Button name="sign" width="75" height="22" padding="100,100,10,8"
@@ -28,9 +29,22 @@
                           selected="true"
                     />
                     <Edit bkcolor="#FFCCCCCC" text="密码" nativebkcolor="#FFCCCCCC" padding="10,165,0,165" height="30" password="true" font="2"/>
+                    <Label text="Float" align="center" float="true" pos="52,120,180,163" bkcolor="#FF00FF00" font="3">  
+                    </Label>
                 </HorizontalLayout>
+                <Button name="test" visible="true"  pos="100,180,200,280" bkcolor="#FFFF0000" hotbkcolor="#FF00FF00" padding="0,0,0,0" bordercolor="#FF0000FF" bordersize="4">    
+                </Button>
             </VerticalLayout>
             <Control height="360" bkimage="bk.png"/>
         </HorizontalLayout>
+        <VerticalLayout name="menu" visible="false" float="true" pos="2,40,82,163" bkcolor="#FF333333">
+            <Button name="about" text="关于" font="1" align="right-top" textpadding="10,0,0,0" height="30" textcolor="#FF999999" hottextcolor="#FF5EA900"/>
+            <Control height="1" bkcolor="#FF000000"/>
+            <Button name="open_file" text="打开文件" font="2" align="center" textpadding="10,0,0,0" height="30" textcolor="#FFFFFFFF" hottextcolor="#FF5EA900"/>
+            <Control height="1" bkcolor="#FF000000"/>
+            <Button name="open_dir" text="打开文件夹ABCD打开" align="left" textpadding="10,0,0,0" height="30" textcolor="#FF00FF00" hottextcolor="#FF5EA900" endellipsis="true"/>
+            <Control height="1" bkcolor="#FF000000"/>
+            <Button name="exit" text="退出" textcolor="#FFFF0000" align="left" textpadding="10,0,0,0" height="30" hottextcolor="#FF5EA900"/>        
+        </VerticalLayout>
     </VerticalLayout>
 </Window>

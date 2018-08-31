@@ -46,7 +46,7 @@ LRESULT CMainUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         break;
     case WM_TIMER:
         if (wParam == TIMER_VIDEO_FRAME) {
-            ::KillTimer(m_hWnd, TIMER_VIDEO_FRAME);
+            //::KillTimer(m_hWnd, TIMER_VIDEO_FRAME);
             std::ifstream ifs;
             ifs.open("frame.bin", std::ios::binary | std::ios::in);
             if (ifs.is_open()) {
@@ -131,7 +131,7 @@ LRESULT CMainUI::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled
         SetSubControls();
     }
 
-    ::SetTimer(m_hWnd, TIMER_VIDEO_FRAME, 1000, NULL);
+    ::SetTimer(m_hWnd, TIMER_VIDEO_FRAME, 40, NULL);
     
     return 0;
 }
@@ -164,13 +164,21 @@ LRESULT CMainUI::OnOpenFile(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handl
 }
 
 void CMainUI::SetSubControls() {
-    menu_btn_ = static_cast<CButtonUI*>(pntm_.FindControl(L"menu"));
+    menu_btn_ = static_cast<CButtonUI*>(pntm_.FindControl(L"menu_btn"));
     if (menu_btn_) {
         menu_btn_->Subscribe(CEventSets::EventClick, MakeDelegate(this, &CMainUI::OnMenuClick));
     }
     image_ = static_cast<CContainerUI*>(pntm_.FindControl(L"image"));
     index_ = static_cast<CVerticalLayoutUI*>(pntm_.FindControl(L"index"));
     video_ = static_cast<CHorizontalLayoutUI*>(pntm_.FindControl(L"video"));
+    video_->SetVideoAttribute(true);
+    menu_ = static_cast<CVerticalLayoutUI*>(pntm_.FindControl(L"menu"));
+
+
+    CButtonUI* exit = static_cast<CButtonUI*>(pntm_.FindControl(L"exit"));
+    if (exit) {
+        exit->Subscribe(CEventSets::EventClick, MakeDelegate(this, &CMainUI::OnMenuExit));
+    }
 }
 
 LRESULT CMainUI::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled) {
@@ -201,9 +209,17 @@ LRESULT CMainUI::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &hand
     CControlUI* ctrl = pntm_.FindSubControlByPoint(NULL, pt);
     std::wstring ctrl_class_name = ctrl->GetClass();
     if (::PtInRect(&caption, pt) && ctrl_class_name != DUI_CTR_BUTTON && ctrl_class_name != DUI_CTR_CHECKBOX) {
+        //std::wstringstream ws;
+        //ws << L"DuiImage HTCAPTION." << ctrl_class_name;
+        //::OutputDebugString(ws.str().c_str());
         return HTCAPTION;  //return HTCAPTION to make system treat this area as a titlebar
     }
-    else return HTCLIENT;
+    else {
+        //std::wstringstream ws;
+        //ws << L"DuiImage HTCLIENT." << ctrl_class_name;
+        //::OutputDebugString(ws.str().c_str());
+        return HTCLIENT;
+    }
 
     //how windows system repsone to a mouse pressed?
     /*
@@ -224,20 +240,35 @@ bool CMainUI::OnMenuClick(void *p) {
     if (notify) {
         CControlUI* sender = notify->pSender;
         if (sender) {
-            RECT pos = sender->GetPos();
-            if (::IsWindow(menu_.GetHWND())) {
-                HWND menu_wnd = menu_.GetHWND();
-                if (!::IsWindowVisible(menu_wnd)) {
-                    ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
-                }
-            }
-            else {
-                menu_.Create(m_hWnd, L"DuiImageMenu", WS_CHILD, 0, 0, NULL);
-                HWND menu_wnd = menu_.GetHWND();
-                ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
+            //RECT pos = sender->GetPos();
+            //if (::IsWindow(menu_.GetHWND())) {
+            //    HWND menu_wnd = menu_.GetHWND();
+            //    if (!::IsWindowVisible(menu_wnd)) {
+            //        ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
+            //    }
+            //}
+            //else {
+            //    menu_.Create(m_hWnd, L"DuiImageMenu", WS_CHILD, 0, 0, NULL);
+            //    HWND menu_wnd = menu_.GetHWND();
+            //    ::SetWindowPos(menu_wnd, NULL, pos.left, pos.bottom, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_SHOWWINDOW);
+            //}
+            if (!menu_->IsVisible()) {
+                menu_->SetVisible(true);
             }
         }
     }
     
+    return true;
+}
+
+bool CMainUI::OnMenuExit(void* p) {
+    TNotifyUI *notify = (TNotifyUI*)p;
+    if (notify) {
+        CControlUI* sender = notify->pSender;
+        if (sender) {            
+            ::PostQuitMessage(0);
+        }
+    }
+
     return true;
 }

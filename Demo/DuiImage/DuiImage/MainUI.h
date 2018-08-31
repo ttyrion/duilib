@@ -26,12 +26,14 @@ public:
     virtual void Notify(TNotifyUI& msg) override;
 
     bool OnMenuClick(void *p);
+    bool OnMenuExit(void* p);
 
     void SetSubControls();
 private:
     CPaintManagerUI pntm_;
-    CMenuUI menu_;
+    //CMenuUI menu_;
     CButtonUI* menu_btn_ = nullptr;
+    CVerticalLayoutUI* menu_ = nullptr;
     CContainerUI* image_ = nullptr;
     CVerticalLayoutUI* index_ = nullptr;
     CHorizontalLayoutUI* video_ = nullptr;
