@@ -47,7 +47,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    path += L"\\skin";
    CPaintManagerUI::SetResourcePath(path.c_str());
 
-   theMainWindow.Create(NULL, L"DuiImageUI", WS_POPUP , 0);
+   theMainWindow.Create(NULL, L"DuiImageUI", WS_POPUP | WS_CLIPCHILDREN, 0);
    HWND hWnd = theMainWindow.GetHWND();
    if (!hWnd) {
       return FALSE;
