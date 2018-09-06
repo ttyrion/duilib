@@ -273,7 +273,7 @@ namespace DuiLib {
         target_blend_desc.SrcBlendAlpha = D3D11_BLEND_ONE;
         target_blend_desc.DestBlendAlpha = D3D11_BLEND_ZERO;
         target_blend_desc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-        target_blend_desc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        target_blend_desc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL; // which channel(s) to blend
 
         D3D11_BLEND_DESC blend_desc;
         ::ZeroMemory(&blend_desc, sizeof(D3D11_BLEND_DESC));
@@ -994,6 +994,7 @@ namespace DuiLib {
             d3d_immediate_context_->DrawIndexed(indice.size(), 0, 0);
 
             ReleaseCOMInterface(vertex_buffer);
+            ReleaseCOMInterface(index_buffer);
         }
 
         return true;
@@ -1079,6 +1080,7 @@ namespace DuiLib {
         d3d_immediate_context_->DrawIndexed(sizeof(indice) / sizeof(WORD), 0, 0);
 
         ReleaseCOMInterface(vertex_buffer);
+        ReleaseCOMInterface(index_buffer);
 
         return true;
     }
@@ -1192,6 +1194,7 @@ namespace DuiLib {
             d3d_immediate_context_->DrawIndexed(indice.size(), 0, 0);
 
             ReleaseCOMInterface(vertex_buffer);
+            ReleaseCOMInterface(index_buffer);
         };
 
         FreeTypeFont font(L"TODO", font_info.iSize, true);
@@ -1419,6 +1422,7 @@ namespace DuiLib {
         D2D1_POINT_2F origin = D2D1::Point2F(final_text_rect.left, final_text_rect.top);
         text_render_target_->DrawTextLayout(origin, text_layout, text_brush_);
         text_render_target_->EndDraw();
+        ReleaseCOMInterface(text_layout);
 
         hr = keyed_mutex_10_->ReleaseSync(1);
         hr = keyed_mutex_11_->AcquireSync(1, 5);
