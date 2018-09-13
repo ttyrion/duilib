@@ -265,14 +265,21 @@ void CControlUI::SetBkImage(LPCTSTR pStrImage)
         break;
     case DuiLib::DrawMode_Direct3D_11: {
             if (back_image_data_.sDrawString == pStrImage && !back_image_data_.empty()) return;
+
             back_image_data_.clear();
             back_image_data_.sDrawString = pStrImage;
-            DrawImage(back_image_data_);
-            if (m_bFloat && m_cxyFixed.cx == 0 && m_cxyFixed.cy == 0 && !back_image_data_.empty()) {
-                //设置m_cxyFixed为image尺寸
-                m_cxyFixed.cx = back_image_data_.bitmap.width;
-                m_cxyFixed.cy = back_image_data_.bitmap.height;
+
+            if (back_image_data_.sDrawString.IsEmpty()) {
+                Invalidate();
             }
+            else {
+                DrawImage(back_image_data_);
+                if (m_bFloat && m_cxyFixed.cx == 0 && m_cxyFixed.cy == 0 && !back_image_data_.empty()) {
+                    //设置m_cxyFixed为image尺寸
+                    m_cxyFixed.cx = back_image_data_.bitmap.width;
+                    m_cxyFixed.cy = back_image_data_.bitmap.height;
+                }
+            }            
         }
         return;
     default:
