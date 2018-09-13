@@ -804,13 +804,13 @@ namespace DuiLib {
                 UINT draw_dest_height = draw_dest.bottom - draw_dest.top;
                 UINT picture_source_width = picture_source.right - picture_source.left;
                 UINT picture_source_height = picture_source.bottom - picture_source.top;
-                real_source_rect.left = (real_paint_rect.left - draw_dest.left) / draw_dest_width * picture_source_width
+                real_source_rect.left = (real_paint_rect.left - draw_dest.left) / (float)draw_dest_width * picture_source_width
                     + picture_source.left;
-                real_source_rect.top = (real_paint_rect.top - draw_dest.top) / draw_dest_height * picture_source_height
+                real_source_rect.top = (real_paint_rect.top - draw_dest.top) / (float)draw_dest_height * picture_source_height
                     + picture_source.top;
-                real_source_rect.right = (real_paint_rect.right - draw_dest.left) / draw_dest_width * picture_source_width
+                real_source_rect.right = (real_paint_rect.right - draw_dest.left) / (float)draw_dest_width * picture_source_width
                     + picture_source.left;
-                real_source_rect.bottom = (real_paint_rect.bottom - draw_dest.top) / draw_dest_height * picture_source_height
+                real_source_rect.bottom = (real_paint_rect.bottom - draw_dest.top) / (float)draw_dest_height * picture_source_height
                     + picture_source.top;
 
                 generate_vertice(real_paint_rect, real_source_rect);
