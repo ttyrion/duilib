@@ -1,4 +1,5 @@
 #pragma once
+#include <fstream>
 #include "UIlib.h"
 #include "Core/UIBase.h"
 #include "menu/MenuUI.h"
@@ -27,15 +28,20 @@ public:
 
     bool OnMenuClick(void *p);
     bool OnMenuExit(void* p);
+    bool OnPlayClick(void* p);
 
     void SetSubControls();
 private:
     CPaintManagerUI pntm_;
-    //CMenuUI menu_;
+    CMenuUI sub_wnd_;
     CButtonUI* menu_btn_ = nullptr;
     CVerticalLayoutUI* menu_ = nullptr;
     CContainerUI* image_ = nullptr;
     CVerticalLayoutUI* index_ = nullptr;
     CHorizontalLayoutUI* video_ = nullptr;
+    CButtonUI* play_ = nullptr;
+    VideoFrame frame_;
+
+    std::ifstream ifs_;
 };
 

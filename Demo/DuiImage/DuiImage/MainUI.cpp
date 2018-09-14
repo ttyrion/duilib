@@ -2,7 +2,6 @@
 #include "MainUI.h"
 #include "define/msg_define.h"
 #include <Shlwapi.h>
-#include <fstream>
 #include "define/const_define.h"
 #include "Dui/UITypedef.h"
 
@@ -47,35 +46,52 @@ LRESULT CMainUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_TIMER:
         if (wParam == TIMER_VIDEO_FRAME) {
             //::KillTimer(m_hWnd, TIMER_VIDEO_FRAME);
-            std::ifstream ifs;
-            ifs.open("frame.bin", std::ios::binary | std::ios::in);
-            if (ifs.is_open()) {
-                VideoFrame frame;
-                frame.width = 896;
-                frame.height = 360;
+            if (!ifs_.is_open()) {
+                ifs_.open("test.video", std::ios::binary | std::ios::in);
+            }            
+            if (ifs_.is_open() && ifs_.peek() != EOF) {                
+                frame_.width = 1920;
+                frame_.height = 872;
 
                 //frame.linesize[0] = frame_width;
                 //frame.linesize[1] = 448;
                 //frame.linesize[2] = 448;
 
-                const UINT frame_height = 360;
+                int count_of_y = frame_.width * frame_.height;
+                frame_.yuv[0].resize(count_of_y, 0);
+                ifs_.read(frame_.yuv[0].data(), count_of_y);
 
-                int count_of_y = frame.width * frame_height;
-                frame.yuv[0].resize(count_of_y, 0);
-                ifs.read(frame.yuv[0].data(), count_of_y);
+                frame_.yuv[1].resize(count_of_y / 4, 0);
+                ifs_.read(frame_.yuv[1].data(), count_of_y / 4);
 
-                frame.yuv[1].resize(count_of_y / 4, 0);
-                ifs.read(frame.yuv[1].data(), count_of_y / 4);
-
-                frame.yuv[2].resize(count_of_y / 4, 0);
-                ifs.read(frame.yuv[2].data(), count_of_y / 4);
-
-                ifs.close();
+                frame_.yuv[2].resize(count_of_y / 4, 0);
+                ifs_.read(frame_.yuv[2].data(), count_of_y / 4);
 
                 if (video_) {
-                    video_->SetVideoFrame(frame);
+                    video_->SetVideoFrame(frame_);
                 }
             }
+            else {
+                if (ifs_.is_open()) {
+                    ifs_.close();
+                }
+
+                if (video_) {
+                    video_->SetVideoFrame(VideoFrame());
+                }
+
+                ::KillTimer(m_hWnd, TIMER_VIDEO_FRAME);
+                if (play_) {
+                    play_->SetTag(0);
+                    play_->SetNormalImage(L"file='play.png' source='0,0,38,38'");
+                    play_->SetHotImage(L"file='play.png' source='38,0,76,38'");
+                    play_->SetPushedImage(L"file='play.png' source='76,0,114,38'");
+                }
+                
+                if (image_) {
+                    image_->SetBkImage(L"file='adver.png' source='0,0,730,410' dest='0,125,730,535'");
+                }
+            }                 
         }
         break;
     default:
@@ -130,8 +146,6 @@ LRESULT CMainUI::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled
         pntm_.AddNotifier(this);
         SetSubControls();
     }
-
-    ::SetTimer(m_hWnd, TIMER_VIDEO_FRAME, 40, NULL);
     
     return 0;
 }
@@ -178,6 +192,12 @@ void CMainUI::SetSubControls() {
     CButtonUI* exit = static_cast<CButtonUI*>(pntm_.FindControl(L"exit"));
     if (exit) {
         exit->Subscribe(CEventSets::EventClick, MakeDelegate(this, &CMainUI::OnMenuExit));
+    }
+
+    play_ = static_cast<CButtonUI*>(pntm_.FindControl(L"play"));
+    if (play_) {
+        play_->SetTag(0);
+        play_->Subscribe(CEventSets::EventClick, MakeDelegate(this, &CMainUI::OnPlayClick));
     }
 }
 
@@ -267,6 +287,42 @@ bool CMainUI::OnMenuExit(void* p) {
         CControlUI* sender = notify->pSender;
         if (sender) {            
             ::PostQuitMessage(0);
+        }
+    }
+
+    return true;
+}
+
+bool CMainUI::OnPlayClick(void* p) {
+    TNotifyUI *notify = (TNotifyUI*)p;
+    if (notify) {
+        CButtonUI* sender = static_cast<CButtonUI*>(notify->pSender);
+        if (sender) {
+            UINT_PTR tag = sender->GetTag();
+            if (tag == 0) {
+                sender->SetNormalImage(L"file='pause.png' source='0,0,38,38'");
+                sender->SetHotImage(L"file='pause.png' source='38,0,76,38'");
+                sender->SetPushedImage(L"file='pause.png' source='76,0,114,38'");
+
+                if (image_) {
+                    image_->SetBkImage(L"");
+                }
+                
+                //start play
+                ::SetTimer(m_hWnd, TIMER_VIDEO_FRAME, 40, NULL);
+
+                sender->SetTag(1);
+            }
+            else {
+                sender->SetNormalImage(L"file='play.png' source='0,0,38,38'");
+                sender->SetHotImage(L"file='play.png' source='38,0,76,38'");
+                sender->SetPushedImage(L"file='play.png' source='76,0,114,38'");
+
+                //pause play
+                ::KillTimer(m_hWnd, TIMER_VIDEO_FRAME);
+
+                sender->SetTag(0);
+            }
         }
     }
 
