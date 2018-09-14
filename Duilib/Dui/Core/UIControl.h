@@ -248,7 +248,7 @@ protected:
 
     //for d3d rendering
     bool m_bVideoControl = false;
-    bool m_bPlayingVideo = true;
+    bool m_bPlayingVideo = false;
     VideoFrame frame_;
     ImageData back_image_data_;
     ImageData fore_image_data_;
