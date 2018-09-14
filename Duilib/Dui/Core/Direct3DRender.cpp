@@ -1024,20 +1024,51 @@ namespace DuiLib {
         SetLinearSamplerState();
         UpdateFrameTextureResource(frame);
 
-        TEXTURE_VERTEX vertice[] = {
-            XMFLOAT3(MapScreenX(temp_rect.left, width_),  MapScreenY(temp_rect.top, height_), 0.0f), XMFLOAT2(0.0f,0.0f), //left-top
-
-            XMFLOAT3(MapScreenX(temp_rect.right, width_), MapScreenY(temp_rect.top, height_), 0.0f), XMFLOAT2(1.0f,0.0f), //right-top
-
-            XMFLOAT3(MapScreenX(temp_rect.right, width_), MapScreenY(temp_rect.bottom, height_), 0.0f), XMFLOAT2(1.0f,1.0f), //right-bottom
-
-            XMFLOAT3(MapScreenX(temp_rect.left, width_),  MapScreenY(temp_rect.bottom, height_), 0.0f), XMFLOAT2(0.0f,1.0f) //left-bottom
-        };
-
+        TEXTURE_VERTEX vertice[4] = { XMFLOAT3(0.0f,0.0f,0.0f), XMFLOAT2(0.0f,0.0f) };
         WORD indice[] = {
             0, 1, 2,
             0, 2, 3
         };
+
+        auto generate_vertice = [this, &vertice, &frame](const RECT& dest, const RECT& source) {
+            //left-top
+            vertice[0] = { XMFLOAT3(MapScreenX(dest.left, width_),  MapScreenY(dest.top, height_), 0.0f),
+                XMFLOAT2(MapTextureXY(source.left, frame.width), MapTextureXY(source.top, frame.height)) };
+            //right-top
+            vertice[1] = { XMFLOAT3(MapScreenX(dest.right, width_), MapScreenY(dest.top, height_), 0.0f),
+                XMFLOAT2(MapTextureXY(source.right, frame.width), MapTextureXY(source.top, frame.height)) };
+            //right-bottom
+            vertice[2] = { XMFLOAT3(MapScreenX(dest.right, width_), MapScreenY(dest.bottom, height_), 0.0f),
+                XMFLOAT2(MapTextureXY(source.right, frame.width), MapTextureXY(source.bottom, frame.height)) };
+            //left-bottom
+            vertice[3] = { XMFLOAT3(MapScreenX(dest.left, width_),  MapScreenY(dest.bottom, height_), 0.0f),
+                XMFLOAT2(MapTextureXY(source.left, frame.width), MapTextureXY(source.bottom, frame.height)) };
+        };
+
+        auto do_real_paint = [this, generate_vertice](const RECT& paint_rect, const RECT& draw_dest, const RECT& picture_source) {
+            RECT real_paint_rect = { 0 };
+            if (!::IntersectRect(&real_paint_rect, &paint_rect, &draw_dest)) {
+                return;
+            }
+
+            RECT real_source_rect = { 0 };
+            UINT draw_dest_width = draw_dest.right - draw_dest.left;
+            UINT draw_dest_height = draw_dest.bottom - draw_dest.top;
+            UINT picture_source_width = picture_source.right - picture_source.left;
+            UINT picture_source_height = picture_source.bottom - picture_source.top;
+            real_source_rect.left = (real_paint_rect.left - draw_dest.left) / (float)draw_dest_width * picture_source_width
+                + picture_source.left;
+            real_source_rect.top = (real_paint_rect.top - draw_dest.top) / (float)draw_dest_height * picture_source_height
+                + picture_source.top;
+            real_source_rect.right = (real_paint_rect.right - draw_dest.left) / (float)draw_dest_width * picture_source_width
+                + picture_source.left;
+            real_source_rect.bottom = (real_paint_rect.bottom - draw_dest.top) / (float)draw_dest_height * picture_source_height
+                + picture_source.top;
+
+            generate_vertice(real_paint_rect, real_source_rect);
+        };
+
+        do_real_paint(paint_rect, item_rect, { 0, 0, (LONG)frame.width, (LONG)frame.height });
 
         D3D11_BUFFER_DESC vertex_buffer_desc;
         vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;

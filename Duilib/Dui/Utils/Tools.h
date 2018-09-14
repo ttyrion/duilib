@@ -4,6 +4,7 @@
 
 namespace DuiLib {
     bool OverlapRect(RECT& overlap, const RECT& src1, const RECT& src2);
+    bool IsSubRect(const RECT& parent, const RECT& sub);
 }
 
 #endif

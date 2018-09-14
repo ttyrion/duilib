@@ -27,4 +27,8 @@ namespace DuiLib {
         
         return false;
     }
+
+    bool IsSubRect(const RECT& parent, const RECT& sub) {
+        return parent.left < sub.left && parent.top < sub.top && parent.right > sub.right && parent.bottom > sub.bottom;
+    }
 }

@@ -279,9 +279,10 @@ void CControlUI::SetBkImage(LPCTSTR pStrImage)
                     m_cxyFixed.cx = back_image_data_.bitmap.width;
                     m_cxyFixed.cy = back_image_data_.bitmap.height;
                 }
-            }            
-        }
-        return;
+            }
+
+            return;
+        }        
     default:
         break;
     }
@@ -372,7 +373,7 @@ bool CControlUI::DrawImage(ImageData& image) {
 
 bool CControlUI::DrawVideoFrame(const VideoFrame& frame) {
     if (m_pManager) {
-        return m_pManager->DrawVideoFrame(m_rcItem, m_rcItem, frame);
+        return m_pManager->DrawVideoFrame(m_rcItem, m_rcPaint, frame);
     }
 
     return false;
@@ -1283,10 +1284,21 @@ bool CControlUI::Paint(const RECT& rcPaint, CControlUI* pStopControl) {
     //另外，m_rcPaint会保存绘制区域
     if (!::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem)) return true;
 
-    //如果控件的视频帧不空，每次Paint都重绘控件全部区域，这样子控件才会显示在视频帧画面之上
-    if (!frame_.empty()) {
-        m_rcPaint = m_rcItem;
-    }
+    //comment by tyrion,下面的注释不完全对:
+    //如果是video控件的子控件触发paint，没有必要把整个video控件区域重绘，只需按普通控件一样重绘m_rcPaint区域即可
+    //因此，就不会存在下面注释说的问题，也不需要调用PaintIntersectFloats()
+
+    //bool repaint_video_sub_area = false;
+    ////如果控件的视频帧不空，每次Paint都重绘控件全部区域，这样子控件才会显示在视频帧画面之上(by virtual DoPaint)
+    //if (!frame_.empty()) {
+    //    //comment by tyrion:
+    //    //SetVideoFrame触发的paint操作，绘制区域是整个video控件区域，因此覆盖在上面的float控件会被它自己的父控件重绘
+    //    //但是如果m_rcPaint是m_rcItem的子区域，说明此次paint不是由SetVideoFrame引起的，而是video控件的某个子控件触发了paint
+    //    //此情景下，需要主动调用PaintIntersectFloats触发上面的float控件重绘
+    //    if (IsSubRect(m_rcItem, m_rcPaint)) {
+    //        repaint_video_sub_area = true;
+    //    }
+    //}
 
     if (OnPaint) {
         if (!OnPaint(this)) return true;
@@ -1298,6 +1310,10 @@ bool CControlUI::Paint(const RECT& rcPaint, CControlUI* pStopControl) {
 
     //cover控件最后绘制，覆盖在父控件控件之上
     if (m_pCover != NULL) return m_pCover->Paint(rcPaint);
+
+    //if (repaint_video_sub_area) {
+    //    PaintIntersectFloats();
+    //}
 
     return true;
 }
@@ -1410,7 +1426,7 @@ void CControlUI::PaintStatusImage() {
 }
 
 void CControlUI::PaintVideoFrame() {
-    if (GetVideoAttribute() && m_rcPaint == m_rcItem) {
+    if (GetVideoAttribute()) {
         DrawVideoFrame(frame_);
     }
 }
