@@ -187,7 +187,8 @@ public:
     void SetVideoFrame(const VideoFrame& frame);
     void SetVideoAttribute(bool video_control);
     bool GetVideoAttribute();
-
+    void SetVideoPlaying(bool playing);
+    bool GetVideoPlaying();
     virtual void DoPostPaint(HDC hDC, const RECT& rcPaint);
 
 	//ÐéÄâ´°¿Ú²ÎÊý
@@ -247,6 +248,7 @@ protected:
 
     //for d3d rendering
     bool m_bVideoControl = false;
+    bool m_bPlayingVideo = true;
     VideoFrame frame_;
     ImageData back_image_data_;
     ImageData fore_image_data_;

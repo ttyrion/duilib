@@ -902,13 +902,15 @@ void CControlUI::Invalidate()
     bool realfloat_unvideo = IsRealFloat();
     CControlUI* parent = this->GetParent();
     bool parent_is_video_ctrl = false;
+    bool parent_video_ctrl_playing = true;
     while (parent && !parent_is_video_ctrl) {
         parent_is_video_ctrl = parent->GetVideoAttribute();
+        parent_video_ctrl_playing = parent->GetVideoPlaying();
         parent = parent->GetParent();
     }
 
     //这两种控件的绘制都会有对应的视频控件在刷新每一帧时一起处理
-    if (parent_is_video_ctrl) {
+    if (parent_is_video_ctrl && parent_video_ctrl_playing ) {
         return;
     }
     else if (realfloat_unvideo) {
@@ -916,7 +918,7 @@ void CControlUI::Invalidate()
         const UINT video_controls_count = video_controls.GetSize();
         for (int i = 0; i < video_controls_count; ++i) {
             CControlUI* item = static_cast<CControlUI*>(video_controls[i]);
-            if (item && item->IsVisible()) {
+            if (item && item->IsVisible() && item->GetVideoPlaying()) {
                 RECT temp = { 0 };
                 RECT video_area = item->GetPos();
                 //如果控件后面的控件包含视频，则此控件不重绘,此控件的重绘会由相应video control 刷新视频帧时完成：避免闪烁
@@ -1576,6 +1578,14 @@ bool CControlUI::GetVideoAttribute() {
     return m_bVideoControl;
 }
 
+void CControlUI::SetVideoPlaying(bool playing) {
+    m_bPlayingVideo = playing;
+}
+
+bool CControlUI::GetVideoPlaying() {
+    return m_bPlayingVideo;
+}
+
 void CControlUI::SetVideoAttribute(bool video_control) {
     m_bVideoControl = video_control;
     if (!m_pManager) {
@@ -1608,7 +1618,9 @@ void CControlUI::SetVideoAttribute(bool video_control) {
 
 void CControlUI::SetVideoFrame(const VideoFrame& frame) {
     frame_ = frame;
-    Invalidate(); //视频帧绘制时会重绘内部子控件(如果当前视频控件是一个容器的话)
+    if (m_bPlayingVideo) {
+        Invalidate();//视频帧绘制时，使整个控件区域无效，因而会重绘内部子控件(如果当前视频控件是一个容器的话)
+    }
 }
 
 } // namespace DuiLib
