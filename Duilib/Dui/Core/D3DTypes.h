@@ -12,6 +12,17 @@ namespace DuiLib {
         IMAGE_FORMAT_RGBA = 4   
     };
 
+    //枚举类型的值不能随意更改
+    enum SHADER_TYPE {
+        SHADER_TYPE_Color_Pixel = 0,
+        SHADER_TYPE_Color_Vertex,
+        SHADER_TYPE_RGBA_Pixel,
+        SHADER_TYPE_RGBA_Vertex,
+        SHADER_TYPE_VIDEO_Pixel,
+        SHADER_TYPE_VIDEO_Vertex,
+        SHADER_TYPE_Max
+    };
+
     struct DuiBitmap {
         UINT width = 0;
         UINT height = 0;

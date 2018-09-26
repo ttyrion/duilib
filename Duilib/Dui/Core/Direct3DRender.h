@@ -65,13 +65,17 @@ namespace DuiLib {
         bool DrawBorder(const RECT& item_rect, const UINT border_size, DWORD color);
 
         static bool LoadImage(ImageData& image);
+        static std::string Direct3DRender::GetShaderFileName(DuiLib::SHADER_TYPE type);
+        static std::string LoadShader(DuiLib::SHADER_TYPE type);
+        static void SaveShader();
+
     private:
         bool CreateTextRenderTarget(const UINT width, const UINT height);
         //initialize Direct2D, Direct3D 10_1, and DirectWrite
         bool Init2DTextRender(IDXGIAdapter1 *adapter, const UINT width, const UINT height);
         void Init2DScreenTexture();
         bool IASetColorLayout();
-        bool IASetTextureLayout(const std::string& vertex_shader_file, const std::string& pixel_shader_file);
+        bool IASetTextureLayout(SHADER_TYPE vertex_shader_type, SHADER_TYPE pixel_shader_type);
         bool IASetRGBATextureLayout();
         bool IASetGrayTextureLayout();
         
@@ -84,15 +88,13 @@ namespace DuiLib {
         bool DrawColorVertex(const std::vector<COLOR_VERTEX>& vertice, const std::vector<WORD>& indice, const D3D11_PRIMITIVE_TOPOLOGY topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         bool DrawLine(const POINT& begin, const POINT& end, DWORD dwcolor);
         bool DrawRect(const RECT& rect, DWORD color);
-        
-        std::string LoadShader(const std::string& cso_file);
+
     private:
+        static std::vector<std::string> shaders_;
         bool initialized_ = false;
         UINT width_ = 0;
         UINT height_ = 0;
-        UINT x4_msaa_uality_ = 0;
-
-        std::map<std::string, std::string> shaders_;
+        UINT x4_msaa_uality_ = 0;       
 
         ID3D11Device* d3d_device_ = NULL;
         ID3D11DeviceContext* d3d_immediate_context_ = NULL;

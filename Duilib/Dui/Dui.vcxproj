@@ -98,11 +98,12 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SOLUTION_ROOT)/Duilib/FreeType/win32;</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /E /Y $(SOLUTION_ROOT)\Duilib\Debug\*.dll $(SOLUTION_ROOT)\Demo\DuiImage\Debug\</Command>
+      <Command>cd $(SOLUTION_ROOT)\Duilib\$(Configuration)  
+start shader_merge_tool.exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -134,11 +135,13 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>d3d11.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SOLUTION_ROOT)/Duilib/FreeType/win32;</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /E /Y $(SOLUTION_ROOT)\Duilib\Release\*.dll $(SOLUTION_ROOT)\Demo\DuiImage\Release\</Command>
+      <Command>cd $(SOLUTION_ROOT)\Duilib\$(Configuration)  
+start shader_merge_tool.exe
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -183,7 +186,10 @@
     <ClInclude Include="Core\D3DTypes.h" />
     <ClInclude Include="Core\Direct3DImage.h" />
     <ClInclude Include="Core\Direct3DRender.h" />
-    <ClInclude Include="Core\FreeTypeFont.h" />
+    <ClInclude Include="Core\FreeTypeFont.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="Core\UIBase.h" />
     <ClInclude Include="Core\UIContainer.h" />
     <ClInclude Include="Core\UIControl.h" />
@@ -232,7 +238,10 @@
     <ClCompile Include="Control\UIWebBrowser.cpp" />
     <ClCompile Include="Core\Direct3DImage.cpp" />
     <ClCompile Include="Core\Direct3DRender.cpp" />
-    <ClCompile Include="Core\FreeTypeFont.cpp" />
+    <ClCompile Include="Core\FreeTypeFont.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Core\UIBase.cpp" />
     <ClCompile Include="Core\UIContainer.cpp" />
     <ClCompile Include="Core\UIControl.cpp" />

@@ -4,11 +4,13 @@
 #include <vector>
 #include "D3DTypes.h"
 #include "Direct3DImage.h"
-#include "FreeTypeFont.h"
+//#include "FreeTypeFont.h"
 
+#define SHADER_FILE "render.dll"
 using namespace DirectX;
 
 namespace DuiLib {
+    std::vector<std::string> Direct3DRender::shaders_;
 
     Direct3DRender::Direct3DRender() {
 
@@ -354,16 +356,16 @@ namespace DuiLib {
             false;
         }
 
-        if (!FreeTypeFont::Init()) {
-            return false;
-        }         
+        //if (!FreeTypeFont::Init()) {
+        //    return false;
+        //}
 
         initialized_ = true;
         return true;
     }
 
     void Direct3DRender::ReleaseDirect3D() {
-        FreeTypeFont::UnInit();
+        //FreeTypeFont::UnInit();
         ReleaseCOMInterface(d3d_swap_chain_);
         ReleaseCOMInterface(d3d_immediate_context_);
         ReleaseCOMInterface(d3d_device_);
@@ -447,12 +449,12 @@ namespace DuiLib {
         d3d_swap_chain_->Present(0, 0);
     }
 
-    bool Direct3DRender::IASetTextureLayout(const std::string& vertex_shader_file, const std::string& pixel_shader_file) {
+    bool Direct3DRender::IASetTextureLayout(SHADER_TYPE vertex_shader_type, SHADER_TYPE pixel_shader_type) {
         assert(d3d_device_);
         assert(d3d_immediate_context_);
 
-        std::string vertex_shader_binary = LoadShader(vertex_shader_file);
-        std::string pixel_shader_binary = LoadShader(pixel_shader_file);
+        std::string vertex_shader_binary = LoadShader(vertex_shader_type);
+        std::string pixel_shader_binary = LoadShader(pixel_shader_type);
 
         if (pixel_shader_binary.empty() || vertex_shader_binary.empty()) {
             return false;
@@ -490,8 +492,8 @@ namespace DuiLib {
         assert(d3d_device_);
         assert(d3d_immediate_context_);
 
-        std::string pixel_shader_binary = LoadShader("cp.dll");
-        std::string vertex_shader_binary = LoadShader("cv.dll");
+        std::string pixel_shader_binary = LoadShader(SHADER_TYPE_Color_Pixel);
+        std::string vertex_shader_binary = LoadShader(SHADER_TYPE_Color_Vertex);
 
         if (pixel_shader_binary.empty() || vertex_shader_binary.empty()) {
             return false;
@@ -526,11 +528,13 @@ namespace DuiLib {
     }
 
     bool Direct3DRender::IASetRGBATextureLayout() {
-        return IASetTextureLayout("rtv.dll", "rtp.dll");
+        return IASetTextureLayout(SHADER_TYPE_RGBA_Vertex, SHADER_TYPE_RGBA_Pixel);
     }
 
     bool Direct3DRender::IASetGrayTextureLayout() {
-        return IASetTextureLayout("gtv.dll", "gtp.dll");
+        //用不到灰阶图
+        //return IASetTextureLayout("gtv.dll", "gtp.dll");
+        return false;
     }
 
     bool Direct3DRender::CreateTextureResource(const UINT width, const UINT height, IMAGE_FORMAT format) {
@@ -741,13 +745,13 @@ namespace DuiLib {
         
         switch (image.bitmap.format) {
         case IMAGE_FORMAT_GRAY: {
-            if (!IASetTextureLayout("gtv.dll", "gtp.dll")) {
-                return false;
-            }
+            //if (!IASetTextureLayout("gtv.dll", "gtp.dll")) {
+            //    return false;
+            //}
             break;
         }
         default:  //IMAGE_FORMAT_RGBA
-            if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
+            if (!IASetTextureLayout(SHADER_TYPE_RGBA_Vertex, SHADER_TYPE_RGBA_Pixel)) {
                 return false;
             }
             break;
@@ -1017,7 +1021,7 @@ namespace DuiLib {
             return false;
         }
 
-        if (!IASetTextureLayout("vfv.dll", "vfp.dll")) {
+        if (!IASetTextureLayout(SHADER_TYPE_VIDEO_Vertex, SHADER_TYPE_VIDEO_Pixel)) {
             return false;
         }
 
@@ -1117,6 +1121,8 @@ namespace DuiLib {
     }
 
     void Direct3DRender::DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style) {
+        return;
+#ifdef USE_FREETYPE
         if (!initialized_) {
             return;
         }
@@ -1290,13 +1296,13 @@ namespace DuiLib {
 
                 switch (data.bitmap.format) {
                 case IMAGE_FORMAT_GRAY: {
-                    if (!IASetTextureLayout("gtv.dll", "gtp.dll")) {
-                        return;
-                    }
+                    //if (!IASetTextureLayout("gtv.dll", "gtp.dll")) {
+                    //    return;
+                    //}
                     break;
                 }
                 default:  //IMAGE_FORMAT_RGBA
-                    if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
+                    if (!IASetTextureLayout(SHADER_TYPE_RGBA_Vertex, SHADER_TYPE_RGBA_Pixel)) {
                         return;
                     }
                     break;
@@ -1314,6 +1320,7 @@ namespace DuiLib {
         if (vertice.size() <= 0) {
             return;
         }
+#endif
     }
 
     void Direct3DRender::DrawText2D(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style) {
@@ -1458,7 +1465,7 @@ namespace DuiLib {
         hr = keyed_mutex_10_->ReleaseSync(1);
         hr = keyed_mutex_11_->AcquireSync(1, 5);
 
-        if (!IASetTextureLayout("rtv.dll", "rtp.dll")) {
+        if (!IASetTextureLayout(SHADER_TYPE_RGBA_Vertex, SHADER_TYPE_RGBA_Pixel)) {
             return;
         }
 
@@ -1736,25 +1743,107 @@ namespace DuiLib {
         return DrawColorVertex(vertice, indice);
     }   
 
-    std::string Direct3DRender::LoadShader(const std::string& cso_file) {
-        if (!shaders_[cso_file].empty()) {
-            return shaders_[cso_file];
+    std::string Direct3DRender::GetShaderFileName(DuiLib::SHADER_TYPE type) {
+        //这些文件名是着色器代码编译生成的文件名，必须对应
+        std::string file;
+        switch (type) {
+        case DuiLib::SHADER_TYPE_Color_Pixel:
+            file = "cp.dll";
+            break;
+        case DuiLib::SHADER_TYPE_Color_Vertex:
+            file = "cv.dll";
+            break;
+        case DuiLib::SHADER_TYPE_RGBA_Pixel:
+            file = "rtp.dll";
+            break;
+        case DuiLib::SHADER_TYPE_RGBA_Vertex:
+            file = "rtv.dll";
+            break;
+        case DuiLib::SHADER_TYPE_VIDEO_Pixel:
+            file = "vfp.dll";
+            break;
+        case DuiLib::SHADER_TYPE_VIDEO_Vertex:
+            file = "vfv.dll";
+            break;
+        default:
+            break;
+        }
+
+        return file;
+    }
+
+    std::string Direct3DRender::LoadShader(DuiLib::SHADER_TYPE type) {
+        if (type >= SHADER_TYPE_Max) {
+            return "";
+        }
+
+        if (shaders_.size() > type) {
+            return shaders_[type];
         }
 
         std::ifstream ifs;
-        std::string shader;
-        ifs.open(cso_file, std::ios::binary | std::ios::in);
-        if (ifs) {
-            ifs.seekg(0, std::ios_base::end);
-            int size = (int)ifs.tellg();
-            ifs.seekg(0, std::ios_base::beg);
-
-            shader.resize(size);
-            ifs.read(&shader[0], size);
-            ifs.close();
+        ifs.open(SHADER_FILE, std::ios::binary | std::ios::in);
+        if (!ifs.is_open()) {
+            return "";
         }
 
-        shaders_[cso_file] = shader;
-        return shader;
+        UINT sizes[SHADER_TYPE_Max] = { 0 };
+        ifs.read((char*)sizes, sizeof(UINT) * SHADER_TYPE_Max);
+        for (int i = SHADER_TYPE_Color_Pixel; i < SHADER_TYPE_Max; ++i) {
+            std::string shader;
+            shader.resize(sizes[i]);
+            ifs.read(&shader[0], sizes[i]);
+            shaders_.push_back(shader);
+        }
+        ifs.close();
+
+        return shaders_[type];
+    }
+
+    void Direct3DRender::SaveShader() {
+        std::ofstream ofs;
+        ofs.open(SHADER_FILE, std::ios::binary | std::ios::trunc);
+        if (!ofs.is_open()) {
+            return;
+        }
+
+        auto get_file_size = [](const std::string file) -> UINT {
+            std::ifstream ifs;
+            ifs.open(file, std::ios::binary | std::ios::in);
+            if (ifs) {
+                ifs.seekg(0, std::ios_base::end);
+                UINT size = (UINT)ifs.tellg();
+                ifs.close();
+                return size;
+            }
+
+            return 0;
+        };
+
+        UINT sizes[SHADER_TYPE_Max] = { 0 };
+        for (int i = SHADER_TYPE_Color_Pixel; i < SHADER_TYPE_Max; ++i) {
+            sizes[i] = get_file_size(Direct3DRender::GetShaderFileName((SHADER_TYPE)i));
+            if (sizes[i] <= 0) {
+                ::MessageBox(NULL, L"着色器Dll有错误！", L"合并着色器Dll",MB_OK);
+                return;
+            }            
+        }
+        ofs.write((const char*)sizes, sizeof(UINT)*SHADER_TYPE_Max);
+        for (int i = SHADER_TYPE_Color_Pixel; i < SHADER_TYPE_Max; ++i) {
+            std::string file = Direct3DRender::GetShaderFileName((SHADER_TYPE)i);
+            std::ifstream ifs;
+            ifs.open(file, std::ios::binary | std::ios::in);
+            if (ifs) {
+                std::string shader;
+                shader.resize(sizes[i]);
+                ifs.read(&shader[0], sizes[i]);
+                ifs.close();
+                ofs.write(shader.c_str(), shader.size());
+
+                std::remove(file.c_str());
+            }
+        }
+
+        ofs.close();
     }
 }
