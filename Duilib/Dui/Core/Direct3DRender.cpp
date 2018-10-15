@@ -148,50 +148,50 @@ namespace DuiLib {
     }
 
     void Direct3DRender::Init2DScreenTexture() {
-        assert(d3d_device_);
+        //assert(d3d_device_);
 
-        TEXTURE_VERTEX vertice[] =
-        {
-            XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f),
-            XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f),
-            XMFLOAT3(1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f),
-            XMFLOAT3(1.0f, -1.0f, 0.0f),XMFLOAT2(1.0f, 1.0f)
-        };
+        //TEXTURE_VERTEX vertice[] =
+        //{
+        //    XMFLOAT3(-1.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f),
+        //    XMFLOAT3(-1.0f,  1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f),
+        //    XMFLOAT3(1.0f,  1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f),
+        //    XMFLOAT3(1.0f, -1.0f, 0.0f),XMFLOAT2(1.0f, 1.0f)
+        //};
 
-        WORD indices[] = {
-            1, 2, 3,
-            1, 3, 0,
-        };
+        //WORD indices[] = {
+        //    1, 2, 3,
+        //    1, 3, 0,
+        //};
 
-        D3D11_BUFFER_DESC vertex_buffer_desc;
-        ::ZeroMemory(&vertex_buffer_desc, sizeof(D3D11_BUFFER_DESC));
-        vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-        vertex_buffer_desc.ByteWidth = sizeof(vertice);  //size of the buffer
-        vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
-        vertex_buffer_desc.CPUAccessFlags = 0;
-        vertex_buffer_desc.MiscFlags = 0;
-        D3D11_SUBRESOURCE_DATA vertex_data;
-        vertex_data.pSysMem = vertice;
-        vertex_data.SysMemPitch = 0;
-        vertex_data.SysMemSlicePitch = 0;
-        ID3D11Buffer *vertex_buffer = NULL;
-        HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &text_plane_vbuffer_);
-        Direct3DFailedDebugMsgBox(hr, , L"create 2D vertex buffer failed.");
+        //D3D11_BUFFER_DESC vertex_buffer_desc;
+        //::ZeroMemory(&vertex_buffer_desc, sizeof(D3D11_BUFFER_DESC));
+        //vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        //vertex_buffer_desc.ByteWidth = sizeof(vertice);  //size of the buffer
+        //vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
+        //vertex_buffer_desc.CPUAccessFlags = 0;
+        //vertex_buffer_desc.MiscFlags = 0;
+        //D3D11_SUBRESOURCE_DATA vertex_data;
+        //vertex_data.pSysMem = vertice;
+        //vertex_data.SysMemPitch = 0;
+        //vertex_data.SysMemSlicePitch = 0;
+        //ID3D11Buffer *vertex_buffer = NULL;
+        //HRESULT hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &text_plane_vbuffer_);
+        //Direct3DFailedDebugMsgBox(hr, , L"create 2D vertex buffer failed.");
 
-        D3D11_BUFFER_DESC index_buffer_desc;
-        ::ZeroMemory(&index_buffer_desc, sizeof(D3D11_BUFFER_DESC));
-        index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-        index_buffer_desc.ByteWidth = sizeof(indices);
-        index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-        index_buffer_desc.CPUAccessFlags = 0;
-        index_buffer_desc.MiscFlags = 0;
-        D3D11_SUBRESOURCE_DATA index_data;
-        index_data.pSysMem = indices;
-        index_data.SysMemPitch = 0;
-        index_data.SysMemSlicePitch = 0;
-        ID3D11Buffer* index_buffer = NULL;
-        hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &text_plane_ibuffer_);
-        Direct3DFailedDebugMsgBox(hr, , L"create 2D index buffer failed.");       
+        //D3D11_BUFFER_DESC index_buffer_desc;
+        //::ZeroMemory(&index_buffer_desc, sizeof(D3D11_BUFFER_DESC));
+        //index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        //index_buffer_desc.ByteWidth = sizeof(indices);
+        //index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        //index_buffer_desc.CPUAccessFlags = 0;
+        //index_buffer_desc.MiscFlags = 0;
+        //D3D11_SUBRESOURCE_DATA index_data;
+        //index_data.pSysMem = indices;
+        //index_data.SysMemPitch = 0;
+        //index_data.SysMemSlicePitch = 0;
+        //ID3D11Buffer* index_buffer = NULL;
+        //hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &text_plane_ibuffer_);
+        //Direct3DFailedDebugMsgBox(hr, , L"create 2D index buffer failed.");       
     }
 
     bool Direct3DRender::InitDirect3D(HWND render_window) {
@@ -764,7 +764,6 @@ namespace DuiLib {
 
         }
         else {
-            UINT index = 0;
             std::vector<TEXTURE_VERTEX> vertice;
             std::vector<WORD> indice;
 
@@ -1468,6 +1467,58 @@ namespace DuiLib {
         if (!IASetTextureLayout(SHADER_TYPE_RGBA_Vertex, SHADER_TYPE_RGBA_Pixel)) {
             return;
         }
+
+        TEXTURE_VERTEX vertice[] = {
+            XMFLOAT3(MapScreenX(text_rect.left, width_),  MapScreenY(text_rect.top, height_), 0.0f),
+            XMFLOAT2(MapTextureXY(text_rect.left, width_), MapTextureXY(text_rect.top, height_)), //left-top
+
+            XMFLOAT3(MapScreenX(text_rect.right, width_), MapScreenY(text_rect.top, height_), 0.0f),
+            XMFLOAT2(MapTextureXY(text_rect.right, width_), MapTextureXY(text_rect.top, height_)), //right-top
+
+            XMFLOAT3(MapScreenX(text_rect.right, width_), MapScreenY(text_rect.bottom, height_), 0.0f),
+            XMFLOAT2(MapTextureXY(text_rect.right, width_), MapTextureXY(text_rect.bottom, height_)), //right-bottom
+
+            XMFLOAT3(MapScreenX(text_rect.left, width_),  MapScreenY(text_rect.bottom, height_), 0.0f),
+            XMFLOAT2(MapTextureXY(text_rect.left, width_), MapTextureXY(text_rect.bottom, height_)), //left-bottom
+        };
+
+        WORD indices[] = {
+            1, 2, 3,
+            1, 3, 0,
+        };
+
+        ReleaseCOMInterface(text_plane_ibuffer_);
+        ReleaseCOMInterface(text_plane_vbuffer_);
+
+        D3D11_BUFFER_DESC vertex_buffer_desc;
+        ::ZeroMemory(&vertex_buffer_desc, sizeof(D3D11_BUFFER_DESC));
+        vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        vertex_buffer_desc.ByteWidth = sizeof(vertice);  //size of the buffer
+        vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;            //type of the buffer
+        vertex_buffer_desc.CPUAccessFlags = 0;
+        vertex_buffer_desc.MiscFlags = 0;
+        D3D11_SUBRESOURCE_DATA vertex_data;
+        vertex_data.pSysMem = vertice;
+        vertex_data.SysMemPitch = 0;
+        vertex_data.SysMemSlicePitch = 0;
+        ID3D11Buffer *vertex_buffer = NULL;
+        hr = d3d_device_->CreateBuffer(&vertex_buffer_desc, &vertex_data, &text_plane_vbuffer_);
+        Direct3DFailedDebugMsgBox(hr, , L"create 2D vertex buffer failed.");
+
+        D3D11_BUFFER_DESC index_buffer_desc;
+        ::ZeroMemory(&index_buffer_desc, sizeof(D3D11_BUFFER_DESC));
+        index_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        index_buffer_desc.ByteWidth = sizeof(indices);
+        index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        index_buffer_desc.CPUAccessFlags = 0;
+        index_buffer_desc.MiscFlags = 0;
+        D3D11_SUBRESOURCE_DATA index_data;
+        index_data.pSysMem = indices;
+        index_data.SysMemPitch = 0;
+        index_data.SysMemSlicePitch = 0;
+        ID3D11Buffer* index_buffer = NULL;
+        hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &text_plane_ibuffer_);
+        Direct3DFailedDebugMsgBox(hr, , L"create 2D index buffer failed.");
 
         d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
 
