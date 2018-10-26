@@ -380,7 +380,6 @@ bool CControlUI::DrawVideoFrame(const VideoFrame& frame) {
 }
 
 bool CControlUI::IsPlaceHolder() {
-    return true;
     return m_bPlaceHolder;
 }
 
