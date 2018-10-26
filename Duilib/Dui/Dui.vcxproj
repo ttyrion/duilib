@@ -72,7 +72,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(VC_IncludePath);$(WindowsSdk_71A_IncludePath);</IncludePath>
-    <OutDir>$(SOLUTION_ROOT)/Duilib/$(Configuration)/</OutDir>
+    <OutDir>$(SOLUTION_ROOT)/$(Configuration)/</OutDir>
     <ExecutablePath>$(SOLUTION_ROOT)/Duilib/tools;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -80,7 +80,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SOLUTION_ROOT)/Duilib/$(Configuration)/</OutDir>
+    <OutDir>$(SOLUTION_ROOT)/$(Configuration)/</OutDir>
     <ExecutablePath>$(SOLUTION_ROOT)/Duilib/tools;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -102,7 +102,7 @@
       <AdditionalLibraryDirectories>$(SOLUTION_ROOT)/Duilib/FreeType/win32;</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>cd $(SOLUTION_ROOT)\Duilib\$(Configuration)  
+      <Command>cd $(SOLUTION_ROOT)/$(Configuration)/  
 start shader_merge_tool.exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -139,7 +139,7 @@ start shader_merge_tool.exe</Command>
       <AdditionalLibraryDirectories>$(SOLUTION_ROOT)/Duilib/FreeType/win32;</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>cd $(SOLUTION_ROOT)\Duilib\$(Configuration)  
+      <Command>cd $(SOLUTION_ROOT)/$(Configuration)  
 start shader_merge_tool.exe
 </Command>
     </PostBuildEvent>

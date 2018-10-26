@@ -3,6 +3,7 @@
     <Font id= "1" name="微软雅黑" size="14" bold="false"/>
     <Font id= "2" name="宋体" size="20" bold="true"/>
     <Font id= "3" name="微软雅黑" size="30" bold="true"/>
+    <Font id= "4" name="icomoon" size="72"/>
 	<VerticalLayout name="root" bkcolor="#FF000000">
         <HorizontalLayout name="titlebar" height="40" bkcolor="#FF666666">
             <Button name="menu_btn" text="菜单" font="1" align="right-center" width="80" bkcolor="#FF666666" textcolor="#FFFFFFFF"/>
@@ -16,7 +17,12 @@
         </HorizontalLayout>
         <VerticalLayout name="image" bkcolor="#FF000000" bkimage="file='adver.png' source='0,0,730,410' dest='0,125,730,535'">
             <Control />
-            <HorizontalLayout name="video" width="730" height="310">
+            <HorizontalLayout name="video" width="730" height="310" bkcolor="#FF000000">
+                <Label name="watermark" visible="false" text="2" font="4" height="100" width="200" padding="430, 50, 100, 160" textcolor="#CDFFFFFF" strokecolor="#2E000000" strokewidth="3" bordercolor="#FFFF0000" bordersize="1"/>
+            </HorizontalLayout>
+            <HorizontalLayout placeholder="true" height="40">
+                <Label padding="20,0,10,20" bkcolor="#FFFF0000"/>
+                <Button padding="20,0,10,20" bkcolor="#FF00FF00"/>
             </HorizontalLayout>
             <Control />
             <HorizontalLayout height="48">
@@ -31,6 +37,13 @@
             <Button name="about" text="关于" font="1" align="right-top" textpadding="10,0,0,0" height="30" textcolor="#FF999999" hottextcolor="#FF5EA900"/>
             <Control height="1" bkcolor="#FF000000"/>
             <Button name="exit" text="退出" textcolor="#FFFF0000" align="left" textpadding="10,0,0,0" height="30" hottextcolor="#FF5EA900"/>        
+        </VerticalLayout>
+        <VerticalLayout name="adver" visible="true" float="true" pos="213,200,517,455" bkimage="pause_adver.png">
+            <Button name="close_adver" height="27" width="27" 
+                    padding="277, 0 ,9, 228"
+                    normalimage="close_normal.png"
+                    hotimage="close_hot.png"
+            />     
         </VerticalLayout>
     </VerticalLayout>
 </Window>

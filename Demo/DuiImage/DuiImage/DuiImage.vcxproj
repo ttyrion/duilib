@@ -73,6 +73,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SOLUTION_ROOT)/Duilib/Dui;$(IncludePath)</IncludePath>
     <LibraryPath>$(SOLUTION_ROOT)/Duilib/$(Configuration);$(LibraryPath)</LibraryPath>
+    <OutDir>$(SOLUTION_ROOT)/$(Configuration)/</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -81,6 +82,7 @@
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SOLUTION_ROOT)/Duilib/Dui;$(IncludePath)</IncludePath>
     <LibraryPath>$(SOLUTION_ROOT)/Duilib/$(Configuration);$(LibraryPath)</LibraryPath>
+    <OutDir>$(SOLUTION_ROOT)/$(Configuration)/</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -100,7 +102,8 @@
       <AdditionalDependencies>Dui.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /E /Y $(SOLUTION_ROOT)\Duilib\$(Configuration)\*.dll $(SOLUTION_ROOT)\Demo\DuiImage\$(Configuration)\</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -135,7 +138,8 @@
       <AdditionalDependencies>Dui.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /E /Y $(SOLUTION_ROOT)\Duilib\$(Configuration)\*.dll $(SOLUTION_ROOT)\Demo\DuiImage\$(Configuration)\</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
