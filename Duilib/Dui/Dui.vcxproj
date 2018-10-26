@@ -100,6 +100,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SOLUTION_ROOT)/Duilib/FreeType/win32;</AdditionalLibraryDirectories>
+      <ImportLibrary>$(SOLUTION_ROOT)/lib/$(Configuration)/$(TargetName).lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
       <Command>cd $(SOLUTION_ROOT)/$(Configuration)/  
@@ -137,6 +138,7 @@ start shader_merge_tool.exe</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SOLUTION_ROOT)/Duilib/FreeType/win32;</AdditionalLibraryDirectories>
+      <ImportLibrary>$(SOLUTION_ROOT)/lib/$(Configuration)/$(TargetName).lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
       <Command>cd $(SOLUTION_ROOT)/$(Configuration)  

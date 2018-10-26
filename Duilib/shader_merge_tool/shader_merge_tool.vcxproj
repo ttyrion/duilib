@@ -72,7 +72,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SOLUTION_ROOT)/src/uilib/Dui;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SOLUTION_ROOT)/Duilib/$(Configuration);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SOLUTION_ROOT)/lib/$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SOLUTION_ROOT)/$(Configuration)/</OutDir>
     <IntDir>$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -82,7 +82,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SOLUTION_ROOT)/Duilib/Dui;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SOLUTION_ROOT)/Duilib/$(Configuration);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SOLUTION_ROOT)/lib/$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SOLUTION_ROOT)/$(Configuration)/</OutDir>
     <IntDir>$(Configuration)/</IntDir>
   </PropertyGroup>
