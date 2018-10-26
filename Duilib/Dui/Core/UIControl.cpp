@@ -379,6 +379,11 @@ bool CControlUI::DrawVideoFrame(const VideoFrame& frame) {
     return false;
 }
 
+bool CControlUI::IsPlaceHolder() {
+    return true;
+    return m_bPlaceHolder;
+}
+
 //不论是否float控件，GetPos()返回的都是控件相对窗口的位置。
 const RECT& CControlUI::GetPos() const
 {
@@ -1221,6 +1226,9 @@ void CControlUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
     else if( _tcscmp(pstrName, _T("shortcut")) == 0 ) SetShortcut(pstrValue[0]);
     else if( _tcscmp(pstrName, _T("menu")) == 0 ) SetContextMenuUsed(_tcscmp(pstrValue, _T("true")) == 0);
 	else if( _tcscmp(pstrName, _T("virtualwnd")) == 0 ) SetVirtualWnd(pstrValue);
+    else if (_tcscmp(pstrName, _T("placeholder"))) {
+        m_bPlaceHolder = (_tcscmp(pstrValue, _T("true")) == 0);
+    }
 	else {
 		AddCustomAttribute(pstrName, pstrValue);
 	}

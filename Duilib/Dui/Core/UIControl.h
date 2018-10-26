@@ -73,6 +73,7 @@ public:
 	void SetBorderStyle(int nStyle);
 
     // 位置相关
+    bool IsPlaceHolder();
     virtual const RECT& GetPos() const;
 	virtual RECT GetRelativePos() const; // 相对(父控件)位置
 	virtual RECT GetClientPos() const; // 客户区域（除去scrollbar和inset）
@@ -262,6 +263,9 @@ protected:
     RECT m_rcPaint;
 	RECT m_rcBorderSize;
 	CDuiStringPtrMap m_mCustomAttrHash;
+
+private:
+    bool m_bPlaceHolder = false;
 };
 
 } // namespace DuiLib

@@ -1449,6 +1449,7 @@ bool CPaintManagerUI::InitControls(CControlUI* pControl, CControlUI* pParent /*=
     if( pControl == NULL ) return false;
     //All the m_pManager(s) of controls will be set here
     pControl->SetManager(this, pParent != NULL ? pParent : pControl->GetParent(), true);
+    //调用 __FindControlFromNameHash，把所有控件加入哈希表中
     pControl->FindControl(__FindControlFromNameHash, this, UIFIND_ALL);
     return true;
 }
@@ -3248,17 +3249,15 @@ CControlUI* CALLBACK CPaintManagerUI::__FindControlFromCount(CControlUI* /*pThis
 
 CControlUI* CALLBACK CPaintManagerUI::__FindControlFromPoint(CControlUI* pThis, LPVOID pData)
 {
-    if (pThis->GetCovering() == true)
-    {
-        return NULL;
-    }
-
+    if (pThis->IsPlaceHolder()) return NULL;
+    if (pThis->GetCovering())   return NULL;
     LPPOINT pPoint = static_cast<LPPOINT>(pData);
     return ::PtInRect(&pThis->GetPos(), *pPoint) ? pThis : NULL;
 }
 
 CControlUI* CALLBACK CPaintManagerUI::__FindControlFromTab(CControlUI* pThis, LPVOID pData)
 {
+    if (pThis->IsPlaceHolder()) return NULL;
     FINDTABINFO* pInfo = static_cast<FINDTABINFO*>(pData);
     if( pInfo->pFocus == pThis ) {
         if( pInfo->bForward ) pInfo->bNextIsIt = true;
@@ -3273,6 +3272,7 @@ CControlUI* CALLBACK CPaintManagerUI::__FindControlFromTab(CControlUI* pThis, LP
 
 CControlUI* CALLBACK CPaintManagerUI::__FindControlFromShortcut(CControlUI* pThis, LPVOID pData)
 {
+    if (pThis->IsPlaceHolder()) return NULL;
     if( !pThis->IsVisible() ) return NULL; 
     FINDSHORTCUT* pFS = static_cast<FINDSHORTCUT*>(pData);
     if( pFS->ch == toupper(pThis->GetShortcut()) ) pFS->bPickNext = true;
