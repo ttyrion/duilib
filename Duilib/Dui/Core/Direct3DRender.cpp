@@ -282,6 +282,7 @@ namespace DuiLib {
         blend_desc.RenderTarget[0] = target_blend_desc; // All the render targets use RenderTarget[0] for blending.
         hr = d3d_device_->CreateBlendState(&blend_desc, &text_blend_state_);
         Direct3DFailedDebugMsgBox(hr, false, L"CreateBlendState Failed.");
+        d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
 
         hr = d3d_device_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &x4_msaa_uality_);
         Direct3DFailedDebugMsgBox(hr, false, L"CheckMultisampleQualityLevels Failed.");
@@ -439,7 +440,7 @@ namespace DuiLib {
 
     void Direct3DRender::BeginDraw() {
         //Set the default blend state (no blending) for opaque objects
-        d3d_immediate_context_->OMSetBlendState(NULL, NULL, 0xFFFFFFFF);
+        //d3d_immediate_context_->OMSetBlendState(NULL, NULL, 0xFFFFFFFF);
     }
 
     void Direct3DRender::EndDraw() {
@@ -993,7 +994,7 @@ namespace DuiLib {
             d3d_immediate_context_->IASetVertexBuffers(0, 1, &vertex_buffer, &stride, &offset);
             d3d_immediate_context_->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R16_UINT, 0);
             d3d_immediate_context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
+            //d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
             d3d_immediate_context_->DrawIndexed(indice.size(), 0, 0);
 
             ReleaseCOMInterface(vertex_buffer);
@@ -1520,8 +1521,6 @@ namespace DuiLib {
         hr = d3d_device_->CreateBuffer(&index_buffer_desc, &index_data, &text_plane_ibuffer_);
         Direct3DFailedDebugMsgBox(hr, , L"create 2D index buffer failed.");
 
-        d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
-
         UINT stride = sizeof(TEXTURE_VERTEX);
         UINT offset = 0;
         d3d_immediate_context_->IASetVertexBuffers(0, 1, &text_plane_vbuffer_, &stride, &offset);
@@ -1891,7 +1890,7 @@ namespace DuiLib {
                 ifs.close();
                 ofs.write(shader.c_str(), shader.size());
 
-                std::remove(file.c_str());
+                //std::remove(file.c_str());
             }
         }
 
