@@ -185,6 +185,7 @@ start shader_merge_tool.exe
     <ClInclude Include="Control\UIText.h" />
     <ClInclude Include="Control\UITreeView.h" />
     <ClInclude Include="Control\UIWebBrowser.h" />
+    <ClInclude Include="Core\Animation.h" />
     <ClInclude Include="Core\D3DTypes.h" />
     <ClInclude Include="Core\Direct3DImage.h" />
     <ClInclude Include="Core\Direct3DRender.h" />
@@ -238,6 +239,7 @@ start shader_merge_tool.exe
     <ClCompile Include="Control\UIText.cpp" />
     <ClCompile Include="Control\UITreeView.cpp" />
     <ClCompile Include="Control\UIWebBrowser.cpp" />
+    <ClCompile Include="Core\Animation.cpp" />
     <ClCompile Include="Core\Direct3DImage.cpp" />
     <ClCompile Include="Core\Direct3DRender.cpp" />
     <ClCompile Include="Core\FreeTypeFont.cpp">

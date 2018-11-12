@@ -31,6 +31,9 @@
     <Filter Include="direct3d\shader">
       <UniqueIdentifier>{737c2bbf-a8f7-4cde-93f3-d17c489c3801}</UniqueIdentifier>
     </Filter>
+    <Filter Include="direct3d\animation">
+      <UniqueIdentifier>{30a61621-b05a-4aab-91f1-d6743e928f7a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -180,6 +183,9 @@
     <ClInclude Include="Utils\Tools.h">
       <Filter>utils</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Animation.h">
+      <Filter>direct3d\animation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -310,6 +316,9 @@
     </ClCompile>
     <ClCompile Include="Utils\Tools.cpp">
       <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Animation.cpp">
+      <Filter>direct3d\animation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

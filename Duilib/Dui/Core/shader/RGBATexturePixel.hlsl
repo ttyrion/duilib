@@ -5,6 +5,11 @@ struct PixelShader_INPUT
     float2 tex    : TEXCOORD0;
 };
 
+cbuffer AlphaBuffer: register(b0)
+{
+    float4 alpha;
+};
+
 SamplerState sample_state;
 //Texture2D tex_r;
 //Texture2D tex_g;
@@ -21,6 +26,9 @@ float4 main(PixelShader_INPUT input) : SV_TARGET
     float r = pixel.b;
     pixel.b = pixel.r;
     pixel.r = r;
+    if (alpha.a != 1.0f) {
+        pixel.a = alpha.a;
+    }
     
     return pixel;
 }

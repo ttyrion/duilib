@@ -404,7 +404,7 @@ public:
 
     DrawMode GetDrawMode();
     void DrawColor(const RECT&rect, DWORD color);
-    bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image, const DWORD bkcolor = 0);
+    bool DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image, const std::uint8_t alpha = 255);
     bool DrawVideoFrame(const RECT& rcItem, const RECT& rcPaint, const VideoFrame& frame);
     void DrawStatusImage();
     void DrawText(const RECT& rcText, const CDuiString& text, UINT font_index, DWORD color, UINT text_style);

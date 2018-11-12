@@ -3806,8 +3806,12 @@ void CPaintManagerUI::DrawColor(const RECT&rect, DWORD color) {
     d3dengine_.FillColor(rect, color);
 }
 
-bool CPaintManagerUI::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image, const DWORD bkcolor) {
-    return d3dengine_.DrawImage(rcItem,rcPaint,image, bkcolor);
+bool CPaintManagerUI::DrawImage(const RECT& rcItem, const RECT& rcPaint, ImageData& image, const std::uint8_t alpha) {
+    if (!d3dengine_.DrawImage(rcItem, rcPaint, image, alpha)) {
+        return false;
+    }
+
+    return true;
 }
 
 bool CPaintManagerUI::DrawVideoFrame(const RECT& rcItem, const RECT& rcPaint, const VideoFrame& frame) {

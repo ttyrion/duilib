@@ -3,6 +3,7 @@
 
 #pragma once
 #include "D3DTypes.h"
+#include "Animation.h"
 
 namespace DuiLib {
 
@@ -44,6 +45,8 @@ public:
     virtual void SetText(LPCTSTR pstrText);
 
     // 图形相关
+    std::uint8_t GetAlpha() const;
+    void SetAlpha(std::uint8_t alpha);
     DWORD GetBkColor() const;
     DWORD GetBlendBkColor() const;  //获取控件背景色，或者父控件背景色，用于背景图片alpha混合
     void SetBkColor(DWORD dwBackColor);
@@ -184,6 +187,7 @@ public:
     virtual void PaintVideoFrame();
     virtual void PaintText();
     virtual void PaintBorder();
+
     void PaintIntersectFloats();
     void SetVideoFrame(const VideoFrame& frame);
     void SetVideoAttribute(bool video_control);
@@ -196,7 +200,11 @@ public:
 	void SetVirtualWnd(LPCTSTR pstrValue);
 	CDuiString GetVirtualWnd() const;
     
-    
+    //动画
+    void EnableAnimator(anim::ANIM_SLOT slot);
+    void DisableAnimator(anim::ANIM_SLOT slot);
+    std::shared_ptr<anim::StoryBoard>& GetStoryBoard();
+    std::shared_ptr<anim::IAnimator>& GetAnimator(anim::ANIM_SLOT slot);
 public:
     CEventSource OnInit;
     CEventSource OnDestroy;
@@ -253,6 +261,7 @@ protected:
     VideoFrame frame_;
     ImageData back_image_data_;
     ImageData fore_image_data_;
+    
 
     DWORD m_dwBorderColor;
 	DWORD m_dwFocusBorderColor;
@@ -265,6 +274,10 @@ protected:
 	CDuiStringPtrMap m_mCustomAttrHash;
 
 private:
+    std::shared_ptr<anim::StoryBoard> story_board_;
+    std::vector<std::shared_ptr<anim::IAnimator>> animators_ = { std::shared_ptr<anim::IAnimator>(), std::shared_ptr<anim::IAnimator>() };
+    std::uint8_t ui_alpha_ = 255;
+
     bool m_bPlaceHolder = false;
 };
 

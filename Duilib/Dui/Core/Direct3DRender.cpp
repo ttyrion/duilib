@@ -116,7 +116,7 @@ namespace DuiLib {
 
         ReleaseCOMInterface(factory);
         ReleaseCOMInterface(shared_surface10);
-
+        
         //we can use this resource view to texture a square which overlays our scene
         hr = d3d_device_->CreateShaderResourceView(shared_texture_, NULL, &shared_texture_resource_view_);
 
@@ -283,6 +283,21 @@ namespace DuiLib {
         hr = d3d_device_->CreateBlendState(&blend_desc, &text_blend_state_);
         Direct3DFailedDebugMsgBox(hr, false, L"CreateBlendState Failed.");
         d3d_immediate_context_->OMSetBlendState(text_blend_state_, NULL, 0xFFFFFFFF);
+
+        //::ZeroMemory(&target_blend_desc, sizeof(D3D11_RENDER_TARGET_BLEND_DESC));
+        //target_blend_desc.BlendEnable = true;
+        //target_blend_desc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        //target_blend_desc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        //target_blend_desc.BlendOp = D3D11_BLEND_OP_ADD;
+        //target_blend_desc.SrcBlendAlpha = D3D11_BLEND_ONE;
+        //target_blend_desc.DestBlendAlpha = D3D11_BLEND_ZERO;
+        //target_blend_desc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        //target_blend_desc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        //::ZeroMemory(&blend_desc, sizeof(D3D11_BLEND_DESC));
+        //blend_desc.RenderTarget[0] = target_blend_desc; // All the render targets use RenderTarget[0] for blending.
+        //hr = d3d_device_->CreateBlendState(&blend_desc, &alpha_blend_state_);
+        //Direct3DFailedDebugMsgBox(hr, false, L"CreateBlendState Failed.");
+
 
         hr = d3d_device_->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &x4_msaa_uality_);
         Direct3DFailedDebugMsgBox(hr, false, L"CheckMultisampleQualityLevels Failed.");
@@ -582,6 +597,34 @@ namespace DuiLib {
         return true;
     }
 
+    bool Direct3DRender::UpdateRGBAPSBuffer(float a) {
+        D3D11_BUFFER_DESC cbDesc;
+        cbDesc.ByteWidth = sizeof(AlphaBuffer);
+        cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+        cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        cbDesc.MiscFlags = 0;
+        cbDesc.StructureByteStride = 0;
+
+        AlphaBuffer abuffer;
+        abuffer.buffer = XMFLOAT4(0.f, 0.f, 0.f, a);
+
+        D3D11_SUBRESOURCE_DATA data;
+        data.pSysMem = &abuffer;
+        data.SysMemPitch = 0;
+        data.SysMemSlicePitch = 0;
+
+        ID3D11Buffer* buffer = NULL;
+        HRESULT hr = d3d_device_->CreateBuffer(&cbDesc, &data, &buffer);
+        Direct3DFailedDebugMsgBox(hr, false, L"create rgba cbuffer failed.");
+
+        d3d_immediate_context_->PSSetConstantBuffers(0, 1, &buffer);
+
+        ReleaseCOMInterface(buffer);
+
+        return true;
+    }
+
     bool Direct3DRender::UpdateTextureResource(const DuiBitmap& bitmap) {
         if (resource_width_ != bitmap.width || resource_height_ != bitmap.height) {
             //UINT channels = sizeof(texture_resource_views_) / sizeof(ID3D11ShaderResourceView*);
@@ -705,7 +748,7 @@ namespace DuiLib {
         return DrawRect(rect, color);
     }
 
-    bool Direct3DRender::DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image, const DWORD bkcolor) {
+    bool Direct3DRender::DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image, const std::uint8_t alpha) {
         if (!initialized_) {
             return false;
         }
@@ -759,6 +802,7 @@ namespace DuiLib {
         }
 
         UpdateTextureResource(image.bitmap);
+        UpdateRGBAPSBuffer(alpha / 255.f);
 
         if (image.alpha_blend || image.fade < 255) {
             //TODO: alpha blend

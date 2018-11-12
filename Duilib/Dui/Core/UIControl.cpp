@@ -185,6 +185,14 @@ void CControlUI::SetText(LPCTSTR pstrText)
     Invalidate();
 }
 
+std::uint8_t CControlUI::GetAlpha() const {
+    return ui_alpha_;
+}
+
+void CControlUI::SetAlpha(std::uint8_t alpha) {
+    ui_alpha_ = alpha;
+}
+
 DWORD CControlUI::GetBkColor() const
 {
     return m_dwBackColor;
@@ -365,7 +373,7 @@ bool CControlUI::DrawImage(HDC hDC, TDrawInfo& drawInfo)
 
 bool CControlUI::DrawImage(ImageData& image) {
     if (m_pManager) {
-        return m_pManager->DrawImage(m_rcItem, m_rcPaint, image, GetBlendBkColor());
+        return m_pManager->DrawImage(m_rcItem, m_rcPaint, image, ui_alpha_);
     }
 
     return false;
@@ -738,6 +746,8 @@ void CControlUI::SetVisible(bool bVisible)
     if( m_pCover != NULL ) m_pCover->SetInternVisible(IsVisible());
 }
 
+// 控件的显示状态由两个因素控制：控件本身的显示状态，父控件的显示状态。
+// 只有两个状态都是true的情况下，控件才能被绘制
 void CControlUI::SetInternVisible(bool bVisible)
 {
     m_bInternVisible = bVisible;
@@ -1228,6 +1238,14 @@ void CControlUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
     else if (_tcscmp(pstrName, _T("placeholder")) == 0) {
         m_bPlaceHolder = (_tcscmp(pstrValue, _T("true")) == 0);
     }
+    else if (_tcscmp(pstrName, _T("animtype")) == 0) {
+        if (_tcscmp(pstrValue, _T("fade")) == 0) {
+            EnableAnimator(anim::FADE_SLOT);
+        }
+        else if (_tcscmp(pstrValue, _T("move")) == 0) {
+            EnableAnimator(anim::MOVE_SLOT);
+        }
+    }
 	else {
 		AddCustomAttribute(pstrName, pstrValue);
 	}
@@ -1412,7 +1430,7 @@ void CControlUI::PaintBkColor()
         //else if (m_dwBackColor >= 0xFF000000) CRenderEngine::DrawColor(hDC, m_rcPaint, GetAdjustColor(m_dwBackColor));
         //else CRenderEngine::DrawColor(hDC, m_rcItem, GetAdjustColor(m_dwBackColor));
 
-        m_pManager->DrawColor(m_rcPaint, m_dwBackColor);
+        m_pManager->DrawColor(m_rcPaint, SETA(m_dwBackColor, ui_alpha_));
     }
 }
 
@@ -1546,6 +1564,35 @@ void CControlUI::PaintBorder() {
             }
         }
     }
+}
+
+void CControlUI::EnableAnimator(anim::ANIM_SLOT slot) {
+    if (!story_board_.get()) {
+        story_board_ = std::make_shared<anim::StoryBoard>();
+        story_board_->SetAnimateUi(this);
+    }
+
+    if (slot == anim::FADE_SLOT) {
+        animators_[slot] = std::make_shared<anim::FadeAnimator>(story_board_);
+        story_board_->SetAnimator(slot, animators_[slot]);
+    }
+    if (slot == anim::MOVE_SLOT) {
+        //
+    }
+}
+
+void CControlUI::DisableAnimator(anim::ANIM_SLOT slot) {
+    if (animators_[slot].get()) {
+        animators_[slot].reset();
+    }
+}
+
+std::shared_ptr<anim::StoryBoard>& CControlUI::GetStoryBoard() {
+    return story_board_;
+}
+
+std::shared_ptr<anim::IAnimator>& CControlUI::GetAnimator(anim::ANIM_SLOT slot) {
+    return animators_[slot];
 }
 
 void CControlUI::PaintIntersectFloats() {

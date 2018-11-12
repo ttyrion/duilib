@@ -42,10 +42,16 @@
 #define GETR(color) (int)((color & 0x00FF0000) >> 16)
 #define GETG(color) (int)((color & 0x0000FF00) >> 8)
 #define GETB(color) (int)(color & 0x000000FF)
+#define SETA(color,alpha) (DWORD)(((alpha << 24) | (color & 0x00FFFFFF)))
 
 namespace DuiLib {
     class DUILIB_API Direct3DRender
     {
+        struct AlphaBuffer
+        {
+            DirectX::XMFLOAT4 buffer;
+        };
+
     public:
         Direct3DRender();
         ~Direct3DRender();
@@ -58,7 +64,7 @@ namespace DuiLib {
         void EndDraw();
 
         bool FillColor(const RECT& rect, DWORD color);
-        bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image, const DWORD bkcolor);
+        bool DrawImage(const RECT& item_rect, const RECT& paint_rect, ImageData& image, const std::uint8_t alpha = 255);
         bool DrawVideoFrame(const RECT& item_rect, const RECT& paint_rect, const VideoFrame& frame);
         void DrawText(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
         void DrawText2D(const RECT& text_rect, const CDuiString& text, const TFontInfo& font_info, DWORD color, UINT text_style);
@@ -81,6 +87,7 @@ namespace DuiLib {
         
         bool CreateTextureResource(const UINT width, const UINT height, IMAGE_FORMAT format);
         bool UpdateTextureResource(const DuiBitmap& bitmap);
+        bool UpdateRGBAPSBuffer(float a);
         bool CreateFrameTextureResource(const VideoFrame& frame);
         bool UpdateFrameTextureResource(const VideoFrame& frame);
         bool SetLinearSamplerState();
@@ -112,6 +119,7 @@ namespace DuiLib {
         //控制着色器
         //ID3D11SamplerState* sampler_state_ = NULL;
         ID3D11BlendState* text_blend_state_ = NULL;
+        ID3D11BlendState* alpha_blend_state_ = NULL;
 
         //用三层文理资源分别访问一帧视频的yuv数据
         UINT frame_width_ = 0;
