@@ -578,6 +578,16 @@ namespace DuiLib
 		return m_pHorizontalScrollBar;
 	}
 
+    void CContainerUI::SetAlpha(std::uint8_t alpha) {
+        CControlUI::SetAlpha(alpha);
+
+        for (int it = 0; it < m_items.GetSize(); it++) {
+            CControlUI* pControl = static_cast<CControlUI*>(m_items[it]);
+            if (!pControl->IsVisible()) continue;
+            pControl->SetAlpha(alpha);
+        }
+    }
+
 	int CContainerUI::FindSelectable(int iIndex, bool bForward /*= true*/) const
 	{
 		// NOTE: This is actually a helper-function for the list/combo/ect controls
