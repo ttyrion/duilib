@@ -1577,7 +1577,8 @@ void CControlUI::EnableAnimator(anim::ANIM_SLOT slot) {
         story_board_->SetAnimator(slot, animators_[slot]);
     }
     if (slot == anim::MOVE_SLOT) {
-        //
+        animators_[slot] = std::make_shared<anim::MovingAnimator>(story_board_);
+        story_board_->SetAnimator(slot, animators_[slot]);
     }
 }
 

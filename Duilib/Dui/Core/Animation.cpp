@@ -39,12 +39,13 @@ namespace DuiLib {
             if ((anim_type & FADE_SHOW_ANIM) && !animators_[FADE_SLOT].expired()) {
                 animators_[FADE_SLOT].lock()->Start(FadeAnimator::SHOW);
             }
-            else if ((anim_type & FADE_HIDE_ANIM) && !animators_[FADE_SLOT].expired()) {
+            
+            if ((anim_type & FADE_HIDE_ANIM) && !animators_[FADE_SLOT].expired()) {
                 animators_[FADE_SLOT].lock()->Start(FadeAnimator::HIDE);
             }
-
+            
             if ((anim_type & MOVE_ANIM) && !animators_[MOVE_SLOT].expired()) {
-                //
+                animators_[MOVE_SLOT].lock()->Start(0);
             }
         }
 
@@ -71,6 +72,17 @@ namespace DuiLib {
             case FADE_HIDE_ANIM: {
                 ui_element_->SetAlpha(data.alpha);
                 ui_element_->Invalidate();
+                break;
+            }
+            case MOVE_ANIM: {
+                RECT pos;
+                pos.left = GETXPOS(data.pos);
+                pos.top = GETYPOS(data.pos);
+                pos.right = pos.left + ui_element_->GetWidth();
+                pos.bottom = pos.top + ui_element_->GetHeight();
+                ui_element_->SetPos(pos);
+
+                break;
             }
             default:
                 break;
@@ -106,7 +118,7 @@ namespace DuiLib {
             }
         }
 
-        FadeAnimator::FadeAnimator(std::shared_ptr<StoryBoard> observer, std::uint16_t period, std::uint8_t min_alpha, std::uint8_t max_alpha) {
+        FadeAnimator::FadeAnimator(std::shared_ptr<StoryBoard> observer, std::uint8_t min_alpha, std::uint8_t max_alpha, std::uint16_t period) {
             anim_observer_ = observer;
             period_ = period;
             max_alpha_ = max_alpha;
@@ -116,6 +128,20 @@ namespace DuiLib {
 
         FadeAnimator::~FadeAnimator() {
             
+        }
+
+        FadeAnimator& FadeAnimator::SetAnimationFactor(ANIM_FACTOR_NAME key, UINT value) {
+            if (key == ANIM_FACTOR_PERIOD) {
+                SetPeriod(value & 0xFFFF);
+            }
+            else if (key == ANIM_FACTOR_FADE_MAXA) {
+                SetPeriod(value & 0xFF);
+            }
+            else if (key == ANIM_FACTOR_FADE_MINA) {
+                SetPeriod(value & 0xFF);
+            }
+
+            return *this;
         }
 
         FadeAnimator& FadeAnimator::SetPeriod(std::uint16_t period) {
@@ -206,8 +232,97 @@ namespace DuiLib {
             }
         }
 
+        MovingAnimator::MovingAnimator(std::shared_ptr<StoryBoard> observer, POINT start, POINT dest, std::uint16_t period) {
+            anim_observer_ = observer;
+            start_pt_ = start;
+            dest_pt_ = dest;
+            period_ = period;
+        }
+
+        MovingAnimator::~MovingAnimator() {
+            
+        }
+
+        MovingAnimator& MovingAnimator::SetAnimationFactor(ANIM_FACTOR_NAME key, UINT value) {
+            if (key == ANIM_FACTOR_PERIOD) {
+                SetPeriod(value & 0xFFFF);
+            }
+            else if (key == ANIM_FACTOR_MOVE_START) {
+                POINT pt;
+                pt.x = GETXPOS(value);
+                pt.y = GETYPOS(value);
+                SetStartPos(pt);
+            }
+            else if (key == ANIM_FACTOR_MOVE_DEST) {
+                POINT pt;
+                pt.x = GETXPOS(value);
+                pt.y = GETYPOS(value);
+                SetDestPos(pt);
+            }
+
+            return *this;
+        }
+
+        MovingAnimator& MovingAnimator::SetPeriod(std::uint16_t period) {
+            period_ = period;
+
+            return *this;
+        }
+
+        MovingAnimator& MovingAnimator::SetStartPos(POINT start) {
+            start_pt_ = start;
+
+            return *this;
+        }
+
+        MovingAnimator& MovingAnimator::SetDestPos(POINT dest) {
+            dest_pt_ = dest;
+
+            return *this;
+        }
+
+        void MovingAnimator::Start(int type_no_use) {
+            // Use a local coordinate
+            dest_pt_.x -= start_pt_.x;
+            dest_pt_.y -= start_pt_.y;
+            current_x_ = 0;
+            moving_slope_ = dest_pt_.y / (float)dest_pt_.x;
+
+            lambda_ = [] (LONG x, float moving_slope) ->POINT {
+                LONG y = moving_slope * x;
+                POINT pt;
+                pt.x = x;
+                pt.y = y;
+                return pt;
+            };
+
+            ::SetTimer(GetAnimWindow(), (UINT_PTR)this, move_rate, (TIMERPROC)AnimationTimerProc);
+        }
+
+        void MovingAnimator::Stop() {
+            ::KillTimer(GetAnimWindow(), (UINT_PTR)this);
+        }
+
+        void MovingAnimator::DoAnimation() {
+            current_x_ += dest_pt_.x / (period_ / move_rate);
+            if (current_x_ > dest_pt_.x) {
+                current_x_ = dest_pt_.x;
+                Stop();
+            }
+
+            POINT current_pt = lambda_(current_x_, moving_slope_);
+            current_pt.x += start_pt_.x;
+            current_pt.y += start_pt_.y;
+
+            if (!anim_observer_.expired()) {
+                anim_data data;
+                data.pos = MAKEPOS(current_pt.x, current_pt.y);
+                anim_observer_.lock()->OnAnimation(MOVE_ANIM, data);
+            }
+        }
+
         void CALLBACK AnimationTimerProc(HWND hWnd, UINT nMsg, UINT_PTR nTimerid, DWORD dwTime) {
-            FadeAnimator* anim = reinterpret_cast<FadeAnimator*>(nTimerid);
+            IAnimator* anim = reinterpret_cast<IAnimator*>(nTimerid);
             HandleAnimTimer(*anim);
         }
     }
