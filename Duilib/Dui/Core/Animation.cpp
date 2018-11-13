@@ -37,14 +37,17 @@ namespace DuiLib {
             }
 
             if ((anim_type & FADE_SHOW_ANIM) && !animators_[FADE_SLOT].expired()) {
+                animators_[FADE_SLOT].lock()->Stop();
                 animators_[FADE_SLOT].lock()->Start(FadeAnimator::SHOW);
             }
             
             if ((anim_type & FADE_HIDE_ANIM) && !animators_[FADE_SLOT].expired()) {
+                animators_[FADE_SLOT].lock()->Stop();
                 animators_[FADE_SLOT].lock()->Start(FadeAnimator::HIDE);
             }
             
             if ((anim_type & MOVE_ANIM) && !animators_[MOVE_SLOT].expired()) {
+                animators_[MOVE_SLOT].lock()->Stop();
                 animators_[MOVE_SLOT].lock()->Start(0);
             }
         }
@@ -58,7 +61,7 @@ namespace DuiLib {
             }
 
             if ((anim_type & MOVE_ANIM) && !animators_[MOVE_SLOT].expired()) {
-                //
+                animators_[MOVE_SLOT].lock()->Stop();
             }
         }
 
