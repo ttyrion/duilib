@@ -29,6 +29,7 @@ public:
     bool OnMenuClick(void *p);
     bool OnMenuExit(void* p);
     bool OnPlayClick(void* p);
+    bool OnCloseAdverClick(void* p);
 
     void SetSubControls();
 private:
@@ -40,6 +41,9 @@ private:
     CVerticalLayoutUI* index_ = nullptr;
     CHorizontalLayoutUI* video_ = nullptr;
     CButtonUI* play_ = nullptr;
+    CLabelUI* water_mark_ = nullptr;
+    CVerticalLayoutUI* adver_ = nullptr;
+    CButtonUI* close_adver_ = nullptr;
     VideoFrame frame_;
 
     std::ifstream ifs_;

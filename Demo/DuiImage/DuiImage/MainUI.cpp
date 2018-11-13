@@ -4,8 +4,11 @@
 #include <Shlwapi.h>
 #include "define/const_define.h"
 #include "Dui/UITypedef.h"
+#include "Dui/Core/Animation.h"
 
 #define TIMER_VIDEO_FRAME 1024
+
+using namespace anim;
 
 CMainUI::CMainUI() {
 
@@ -90,6 +93,18 @@ LRESULT CMainUI::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 
                 if (image_) {
                     image_->SetBkImage(L"file='adver.png' source='0,0,730,410' dest='0,125,730,535'");
+                }
+
+                if (water_mark_) {
+                    water_mark_->SetVisible(false);
+                }
+
+                if (video_) {
+                    video_->SetVideoPlaying(false);
+                }
+
+                if (adver_ && adver_->IsVisible()) {
+                    //adver_->SetVisible(false);
                 }
             }                 
         }
@@ -199,6 +214,13 @@ void CMainUI::SetSubControls() {
         play_->SetTag(0);
         play_->Subscribe(CEventSets::EventClick, MakeDelegate(this, &CMainUI::OnPlayClick));
     }
+
+    water_mark_ = static_cast<CLabelUI*>(pntm_.FindControl(L"watermark"));
+    adver_ = static_cast<CVerticalLayoutUI*>(pntm_.FindControl(L"adver"));
+    if (adver_) {
+        close_adver_ = static_cast<CButtonUI*>(adver_->FindSubControl(L"close_adver"));
+        close_adver_->Subscribe(CEventSets::EventClick, MakeDelegate(this, &CMainUI::OnCloseAdverClick));
+    }
 }
 
 LRESULT CMainUI::OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &handled) {
@@ -293,6 +315,29 @@ bool CMainUI::OnMenuExit(void* p) {
     return true;
 }
 
+bool CMainUI::OnCloseAdverClick(void* p) {
+    RECT pos = adver_->GetPos();
+    POINT start;
+    start.x = pos.left;
+    start.y = pos.top;
+
+    POINT dest = start;
+    dest.x += 100;
+    dest.y += 200;
+
+    if (adver_->GetStoryBoard().get()) {
+        if (adver_->GetAnimator(anim::MOVE_SLOT).get()) {
+            adver_->GetAnimator(anim::MOVE_SLOT)->
+                SetAnimationFactor(anim::ANIM_FACTOR_MOVE_DEST, MAKEPOS(dest.x, dest.y))
+                .SetAnimationFactor(ANIM_FACTOR_MOVE_START, MAKEPOS(start.x, start.y));
+        }
+        adver_->GetStoryBoard()->Start(anim::FADE_HIDE_ANIM);
+        adver_->GetStoryBoard()->Start(anim::MOVE_ANIM);
+    }
+
+    return true;
+}
+
 bool CMainUI::OnPlayClick(void* p) {
     TNotifyUI *notify = (TNotifyUI*)p;
     if (notify) {
@@ -308,8 +353,20 @@ bool CMainUI::OnPlayClick(void* p) {
                     image_->SetBkImage(L"");
                 }
                 
+                if (water_mark_) {
+                    water_mark_->SetVisible(true);
+                }
+
+                if (adver_ && adver_->IsVisible()) {
+                    //adver_->SetVisible(false);
+                }
+
+                if (video_) {
+                    video_->SetVideoPlaying(true);
+                }
+
                 //start play
-                ::SetTimer(m_hWnd, TIMER_VIDEO_FRAME, 40, NULL);
+                ::SetTimer(m_hWnd, TIMER_VIDEO_FRAME, 35, NULL);
 
                 sender->SetTag(1);
             }
@@ -317,6 +374,16 @@ bool CMainUI::OnPlayClick(void* p) {
                 sender->SetNormalImage(L"file='play.png' source='0,0,38,38'");
                 sender->SetHotImage(L"file='play.png' source='38,0,76,38'");
                 sender->SetPushedImage(L"file='play.png' source='76,0,114,38'");
+
+                if (adver_ && !adver_->IsVisible()) {
+                    if (adver_->GetStoryBoard().get()) {
+                        adver_->GetStoryBoard()->Start(anim::FADE_SHOW_ANIM);
+                    }
+                }
+
+                if (video_) {
+                    video_->SetVideoPlaying(false);
+                }
 
                 //pause play
                 ::KillTimer(m_hWnd, TIMER_VIDEO_FRAME);
